@@ -1,0 +1,29 @@
+honeyeye:
+  system:
+    inputingMode: 2 # 1:capture, 2:load
+    outputingMode: -1 # -1:plugin, 0:none, 1:transmission, 2:storage, 3:double
+  inputer:
+    capturer:
+      count: -1
+      readTimeout: 60
+      snaplen: 65536
+      filter: tcp port 443 and (dst 192.168.31.137 or src 192.168.31.137)
+      interval: 2
+      enableAutoFind: true
+    loader:
+      filePath: "C:\\Users\\18809\\Desktop\\Honeyeye A Network Traffic Collection Framework for Distributed Honeynets of Industrial Control Systems\\experiment\\expD\\U_testPcap_5s_1.pcap"
+  listener:
+    transmittingGrain: 0 # 0:rawPacket, 1:packet, 2:flow, 3:session
+    transmittingTimeout: 10  # in [s]
+    outputtingGrain: 2 # 0:rawPacket, 1:packet, 2:flow, 3:session
+    outputtingTimeout: 10  # in [s]
+    pluginGrain: 2 # 0:rawPacket, 1:packet, 2:flow, 3:session
+    pluginTimeout: 1  # in [s]
+    meetingTimeout: 100000000000000000  # in [s]
+    segmentMax: 10000
+    transmittingListener:
+      port: 5150
+      netAddress:  183.198.217.144 #202.199.13.252 #192.168.31.137
+  outputer:
+    filePath: "C:\\Users\\18809\\Desktop\\Honeyeye A Network Traffic Collection Framework for Distributed Honeynets of Industrial Control Systems\\experiment"
+    fileName: "testPcap"
