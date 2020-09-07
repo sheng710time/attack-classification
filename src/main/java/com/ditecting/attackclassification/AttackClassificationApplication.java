@@ -113,7 +113,7 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 //        lofAD.saveLOF(modelPath);
 //        LOF lof = LOF_AD.readLOF(modelPath);
 
-        double dc = lofAD.evaluateTrainingData(cutOffValue, KNN);
+//        double dc = lofAD.evaluateTrainingData(cutOffValue, KNN);
 //        System.out.println("dc: " + dc);
 //        Instances predictedData = lofAD.test(lof, testFilePath, classIndex, includeHeader, options);
 //        LOF_AD.evaluate(predictedData, testFilePathNo, testFilePathLabel, cutOffValue);
