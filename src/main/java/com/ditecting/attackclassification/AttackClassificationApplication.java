@@ -117,8 +117,8 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 //        System.out.println("dc: " + dc);
 //        Instances predictedData = lofAD.test(lof, testFilePath, classIndex, includeHeader, options);
 //        LOF_AD.evaluate(predictedData, testFilePathNo, testFilePathLabel, cutOffValue);
-        lofAD.test(testFilePath, classIndex, includeHeader, options);
-        lofAD.evaluate(testFilePathNo, testFilePathLabel, cutOffValue);
+//        lofAD.test(testFilePath, classIndex, includeHeader, options);
+//        lofAD.evaluate(testFilePathNo, testFilePathLabel, cutOffValue);
 //        lofAD.output(testFilePathNo, testFilePathLabel, outPathResult, cutOffValue);
 
         /* SAE
