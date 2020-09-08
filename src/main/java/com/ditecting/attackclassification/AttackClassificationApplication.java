@@ -100,7 +100,7 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         int KNN = 20;
         LOF_AD lofAD = new LOF_AD(0);
         String trainFilePath = "C:\\Users\\18809\\Desktop\\test2\\run1_6rtu(1)_norm.csv";
-        String testFileName = "C:\\Users\\18809\\Desktop\\test2\\send_a_fake_command_modbus_6RTU_with_operate";
+        String testFileName = "C:\\Users\\18809\\Desktop\\test2\\send_a_fake_command_modbus_6RTU_with_operate";//？？abnormal data
         String testFilePath = testFileName + "_norm.csv";
         String testFilePathNo = testFileName + "_no.csv";
         String testFilePathLabel = testFileName + "_labeled.csv";
@@ -108,15 +108,15 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         int classIndex = 0;
         boolean includeHeader = true;
         String[] options = new String[]{"-R", "first-last"};
-        lofAD.train(trainFilePath, KNN, KNN, classIndex, includeHeader, options);
-//        String modelPath = "C:\\Users\\18809\\Desktop\\test2\\LOF.model";
+//        lofAD.train(trainFilePath, KNN, KNN, classIndex, includeHeader, options);
+        String modelPath = "C:\\Users\\18809\\Desktop\\test2\\LOF.model";
 //        lofAD.saveLOF(modelPath);
-//        LOF lof = LOF_AD.readLOF(modelPath);
+        LOF lof = LOF_AD.readLOF(modelPath);
 
 //        double dc = lofAD.evaluateTrainingData(cutOffValue, KNN);
 //        System.out.println("dc: " + dc);
-//        Instances predictedData = lofAD.test(lof, testFilePath, classIndex, includeHeader, options);
-//        LOF_AD.evaluate(predictedData, testFilePathNo, testFilePathLabel, cutOffValue);
+        Instances predictedData = lofAD.test(lof, testFilePath, classIndex, includeHeader, options);
+        LOF_AD.evaluate(predictedData, testFilePathNo, testFilePathLabel, cutOffValue);
 //        lofAD.test(testFilePath, classIndex, includeHeader, options);
 //        lofAD.evaluate(testFilePathNo, testFilePathLabel, cutOffValue);
 //        lofAD.output(testFilePathNo, testFilePathLabel, outPathResult, cutOffValue);
