@@ -1,7 +1,10 @@
 package com.ditecting.attackclassification.anomalyclassification;
 
-public class Sample {
-	private double[] attributes;
+import java.io.Serializable;
+
+public class Sample implements Serializable{
+    private static final long serialVersionUID = -4313720880601207893L;
+    private double[] attributes;
 	private String label;
 	private String predictLabel;
 	public Sample(double[] attributes, String label) {

@@ -1,9 +1,12 @@
 package com.ditecting.attackclassification.anomalyclassification;
 
+import com.ditecting.attackclassification.dataprocess.CSVUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -11,30 +14,35 @@ import java.util.*;
  * @version 1.0
  * @date 2020/8/29 10:54
  */
-public class DensityPeakClusterStrict {
+@Slf4j
+public class DensityPeakClusterStrict implements Serializable{
+    private static final long serialVersionUID = 326446623915254422L;
+    private double dc;
     private ArrayList<Sample> samples; // training samples
-    private ArrayList<Sample> testingSamples; // testing samples
-    private HashMap<Integer, Double> densityCountMap;//局部密度Map ：<index,densitycount>
-    private ArrayList<Map.Entry<Integer, Double>> sortedDensityList;//由大到小排序的Density list
-    private HashMap<Integer, Double> deltaMap;//deltaMap:<index, delta>
-    private ArrayList<Map.Entry<Integer, Double>> sortedDeltaList;//由大到小排序的Density list
-    private HashMap<Integer, Double> gammaMap;//gammaMap:<index, gamma>
-    private ArrayList<Map.Entry<Integer, Double>> sortedGammaList;//由大到小排序的Gamma list
-    private HashMap<Integer, Integer> nearestNeighborMap;//每个样本的最近邻：<sampleIndex, nearestNeighborIndex>
-    private HashMap<String, Double> pairDistanceMap;//样本对距离：<"index1 index2", distance>
-    private double maxDelta;//最大Delta
-    private double minDelta;//最小Delta
-    private double maxDensity;//最大Density
-    private double minDensity;//最小Density
-    private double maxDistance;//最大样本距离
-    private double minDistance;//最小样本距离
-    private double neighborPercentage;//dc选取比例
-    private HashMap<Integer, Integer> sampleToClusterMap;//划分的聚类结果<sampleIndex, clusterIndex>
+    private transient ArrayList<Sample> testingSamples; // testing samples
+    private transient HashMap<Integer, Double> densityCountMap;//局部密度Map ：<index,densitycount>
+    private transient ArrayList<Pair<Integer, Double>> sortedDensityList;//由大到小排序的Density list
+    private transient HashMap<Integer, Double> deltaMap;//deltaMap:<index, delta>
+    private transient ArrayList<Pair<Integer, Double>> sortedDeltaList;//由大到小排序的Density list
+    private transient HashMap<Integer, Double> gammaMap;//gammaMap:<index, gamma>
+    private transient ArrayList<Pair<Integer, Double>> sortedGammaList;//由大到小排序的Gamma list
+    private transient HashMap<Integer, Integer> nearestNeighborMap;//每个样本的最近邻：<sampleIndex, nearestNeighborIndex>
+    private transient HashMap<String, Double> pairDistanceMap;//样本对距离：<"index1 index2", distance>
+    private transient double maxDelta;//最大Delta
+    private transient double minDelta;//最小Delta
+    private transient double maxDensity;//最大Density
+    private transient double minDensity;//最小Density
+    private transient double maxDistance;//最大样本距离
+    private transient double minDistance;//最小样本距离
+    private transient double neighborPercentage;//dc选取比例
+    private ArrayList<Integer> centerList;//clustering id list
+    private transient HashMap<Integer, Integer> sampleToClusterMap;//划分的聚类结果<sampleIndex, clusterIndex>
     private HashMap<Integer, List<Integer>> clusterToSampleMap;//划分的聚类结果<clusterIndex, List(sampleIndex)>
     private HashMap<Integer, Integer> clustersLabels;// labels of clusters <clusterIndex, class>
-    private HashMap<Integer, Sample> clusterCenterList; // centers of clusters <clusterIndex, center-sample>
+    private HashMap<Integer, Sample> clusterCenterMap; // centers of clusters <clusterIndex, center-sample>
 
-    public void train (String trainFilePathLabel, String trainFilePath, int trainLabelIndex, int trainIndex, double dc) throws IOException {
+    public void train (String trainFilePathLabel, String trainFilePath, int trainLabelIndex, int trainIndex) throws IOException {
+        log.info("Start to train.");
         /* Load labeled and unlabeled training data */
         samples = new ArrayList<>();
         if(trainFilePathLabel != null){
@@ -50,6 +58,10 @@ public class DensityPeakClusterStrict {
 
         /* Calculate statistical properties of data */
         this.calPairDistance();
+//        dc = 0.10007584708487159/20;
+        log.info("Start to calculate dc.");
+        dc = this.findDC();
+        log.info("Get dc:" + dc);
         this.calRhoCK(dc);//截断距离
 //		cluster.calRhoGK(dc);//高斯距离
         this.calDelta();
@@ -57,6 +69,33 @@ public class DensityPeakClusterStrict {
 
         /* Cluster */
         this.clusterByHeuristics(dc);
+        log.info("Finish training.");
+    }
+
+    /**
+     * cluster flows according to centerNum
+     * @param centerNum
+     */
+    public void clusterByCenterNum(int centerNum, int dimension) {
+        //Generate clustering centers according to centerNum
+        centerList = new ArrayList<Integer>();
+        sampleToClusterMap = new HashMap<Integer, Integer>();
+        for(int a=0; a<centerNum; a++){
+            centerList.add(sortedGammaList.get(a).getKey());
+            sampleToClusterMap.put(sortedGammaList.get(a).getKey(), sortedGammaList.get(a).getKey());
+        }
+
+        /*根据聚类中心进行聚类，注意：一定要按照密度由大到小逐个划分簇（从高局部密度到低局部密度）*/
+        for(Pair<Integer, Double> candidate : sortedDensityList) {
+            if(!centerList.contains(candidate.getKey())) {//处理非聚类中心
+                //将最近邻居的类别索引作为该样本的类别索引
+                if(sampleToClusterMap.containsKey(nearestNeighborMap.get(candidate.getKey()))) {
+                    sampleToClusterMap.put(candidate.getKey(), sampleToClusterMap.get(nearestNeighborMap.get(candidate.getKey())));
+                } else {
+                    sampleToClusterMap.put(candidate.getKey(), -1);
+                }
+            }
+        }
     }
 
     /**
@@ -75,10 +114,10 @@ public class DensityPeakClusterStrict {
         sampleToClusterMap.put(sortedGammaList.get(0).getKey(), sortedGammaList.get(0).getKey());
 
         /*根据聚类中心进行聚类，注意：一定要按照密度由大到小逐个划分簇（从高局部密度到低局部密度）*/
-        for(Map.Entry<Integer, Double> candidate : sortedDensityList) {
+        for(Pair<Integer, Double> candidate : sortedDensityList) {
             if(!beginnerList.contains(candidate.getKey())) {//处理非聚类中心
                 //将最近邻居的类别索引作为该样本的类别索引
-                if(deltaMap.get(candidate.getKey())< dc){
+                if(deltaMap.get(candidate.getKey()) <= dc){
                     sampleToClusterMap.put(candidate.getKey(), sampleToClusterMap.get(nearestNeighborMap.get(candidate.getKey())));
                 }else{
                     beginnerList.add(candidate.getKey());
@@ -144,7 +183,7 @@ public class DensityPeakClusterStrict {
             throw new NullPointerException("clusterToSampleMap or clustersLabels is null.");
         }
 
-        clusterCenterList = new HashMap<>();
+        clusterCenterMap = new HashMap<>();
         int numColumns = samples.get(0).getAttributes().length;
         for(Map.Entry<Integer, List<Integer>> cluster : clusterToSampleMap.entrySet()){
             double[] totalValues = new double[numColumns];
@@ -158,22 +197,29 @@ public class DensityPeakClusterStrict {
             for(int c=0; c<numColumns; c++){
                 attrs[c] = totalValues[c]/cluster.getValue().size();
             }
-            clusterCenterList.put(cluster.getKey(), new Sample(attrs, clustersLabels.get(cluster.getKey())+""));
+            clusterCenterMap.put(cluster.getKey(), new Sample(attrs, clustersLabels.get(cluster.getKey())+""));
         }
     }
 
-    public void test (String testFilePath, double cutOffValue) throws IOException {
+    public void outputClusteringResults (){//TODO incomplete
+
+    }
+
+    public void test (String testFilePath, int testLabelIndex, int KNC) throws IOException {
+        log.info("Start to test.");
         DataReader testingReader = new DataReader();
-        testingReader.readData(testFilePath,20);
+        testingReader.readData(testFilePath,testLabelIndex);
         testingSamples = testingReader.getSamples();
-        for(Sample sample : testingSamples){
-            Pair<Integer, Sample> center = findNearestCenter(sample, cutOffValue);
-            if(center != null){
-                sample.setPredictLabel(clustersLabels.get(center.getKey())+"");
+        for(int a=0; a<testingSamples.size(); a++){
+            Sample sample = testingSamples.get(a);
+            int centerId = findNearestCenter(sample, dc, KNC);
+            if(centerId != -1){
+                sample.setPredictLabel(clustersLabels.get(centerId)+"");
             } else {// The sample doesn't belong to any existing classes, and create a new cluster for it
                 sample.setPredictLabel("-1");
             }
         }
+        log.info("Finish testing.");
     }
 
     /**
@@ -182,109 +228,118 @@ public class DensityPeakClusterStrict {
      * @param cutOffValue
      * @return
      */
-    public Pair<Integer, Sample> findNearestCenter (Sample sample, double cutOffValue) {
-        List<Map.Entry<Integer, Sample>> nearestCenters = new ArrayList();
-        double currentMinDistance = cutOffValue;
-        /* Find nearest centers by distance */
-        for(Map.Entry<Integer, Sample> center : clusterCenterList.entrySet()){
-            double distance = twoSampleDistance(sample, center.getValue());
-            if(distance < currentMinDistance){
+    public int findNearestCenter (Sample sample, double cutOffValue, int KNC) {
+        List<Pair<Integer, Double>> distanceList = findKNearestCenters(sample, KNC);
+
+        double currentMinDistance = Double.MAX_VALUE;
+        int centerId = -1;
+        for(int a=0; a<KNC; a++){
+            double distance = findNearestDistanceToCenter(sample, distanceList.get(a).getLeft());
+            if(distance<= cutOffValue && distance < currentMinDistance) {
                 currentMinDistance = distance;
-                nearestCenters = new ArrayList();
-                nearestCenters.add(center);
-            }else if (distance == currentMinDistance){
-                nearestCenters.add(center);
+                centerId = distanceList.get(a).getLeft();
             }
         }
 
-        /* Select the center with the largest number of members */
-        if(nearestCenters.size() < 1){
-            return null;
-        } else if(nearestCenters.size() == 1){
-            return new ImmutablePair<Integer, Sample>(nearestCenters.get(0).getKey(), nearestCenters.get(0).getValue());
-        } else {
-            List<Map.Entry<Integer, Sample>> largestCenters = new ArrayList();
-            int currentMaxSize = Integer.MIN_VALUE;
-            for(Map.Entry<Integer, Sample> center : nearestCenters){
-                int size = clusterToSampleMap.get(center.getKey()).size();
-                if(size > currentMaxSize) {
-                    currentMaxSize = size;
-                    largestCenters = new ArrayList<>();
-                    largestCenters.add(center);
-                } else if(size == currentMaxSize){
-                    largestCenters.add(center);
-                }
-            }
-            return new ImmutablePair<Integer, Sample>(largestCenters.get(0).getKey(), largestCenters.get(0).getValue());
-        }
+        return centerId;
     }
 
-//    public double evaluate (String testFilePathLabel, String testFilePathNo) throws Exception {
-//        Map<Integer, Integer> labels = FileLoader.loadLabelsFromCSV(testFilePathLabel);
-//        Map<Integer, List<Integer>> numbersMap = FileLoader.loadNumbersFromCSV(testFilePathNo);
-//
-//        int total = 0;
-//        int TP = 0;
-//        int FP = 0;
-//        int TN = 0;
-//        int FN = 0;
-//
-//        for( Map.Entry<Integer, Integer> element : preLabels.entrySet()){
-//            List<Integer> numbers = numbersMap.get(element.getKey());
-//            int preLabel = element.getValue();
-//            for(int number : numbers){
-//                int realLabel = labels.get(number);
-//                total++;
-//                if(realLabel == 1){
-//                    if(preLabel == 1){
-//                        TP++;
-//                    }else {
-//                        FN++;
-//                    }
-//                }else {
-//                    if(preLabel == 1){
-//                        FP++;
-//                    }else {
-//                        TN++;
-//                    }
-//                }
-//            }
-//        }
-//
-//        double accuracy = ((double)TP+TN)/total;
-//        double detection_rate = -1;
-//        if(TP+FN > 0){
-//            detection_rate = ((double)TP)/(TP+FN);
-//        }
-//        System.out.println("total: " + total);
-//        System.out.println("TP: " + TP);
-//        System.out.println("TN: " + TN);
-//        System.out.println("FP: " + FP);
-//        System.out.println("FN: " + FN);
-//        System.out.println("accuracy: " + accuracy);
-//        System.out.println("detection_rate: " + detection_rate);
-//        return accuracy;
-//    }
-//
-//    public void output (String testFilePathLabel, String testFilePathNo, String outPathResult) throws Exception {
-//        if(!classified){
-//            throw new IllegalStateException("No data has been classified.");
-//        }
-//        Map<Integer, Integer> labels = FileLoader.loadLabelsFromCSV(testFilePathLabel);
-//        Map<Integer, List<Integer>> numbersMap = FileLoader.loadNumbersFromCSV(testFilePathNo);
-//
-//        List<String[]> resultsList = new ArrayList<>();
-//        resultsList.add(new String[]{"flowNo", "packetNo", "data_class", "predicted_class"});
-//        for( Map.Entry<Integer, Integer> element : preLabels.entrySet()) {
-//            List<Integer> numbers = numbersMap.get(element.getKey());
-//            int preLabel = element.getValue();
-//            for (int number : numbers) {
-//                resultsList.add(new String[]{element.getKey() + "", number + "", labels.get(number) + "", preLabel + ""});
-//            }
-//        }
-//
-//        CSVUtil.write(outPathResult, resultsList);
-//    }
+    /**
+     * Find the nearest cluster center to the sample within cutOffValue
+     * @param sample
+     * @param KNC
+     * @return
+     */
+    public List<Pair<Integer, Double>> findKNearestCenters (Sample sample, int KNC) {
+        List<Pair<Integer, Double>> distanceList = new ArrayList();
+
+        for(Map.Entry<Integer, Sample> center : clusterCenterMap.entrySet()){
+            double distance = twoSampleDistance(sample, center.getValue());
+            distanceList.add(new ImmutablePair<>(center.getKey(), distance));
+        }
+
+        Collections.sort(distanceList, new Comparator<Pair<Integer, Double>>() {
+            @Override
+            public int compare(Pair<Integer, Double> o1, Pair<Integer, Double> o2) {
+                return o1.getRight().compareTo(o2.getRight());
+            }
+        });
+
+        return distanceList.subList(0,KNC);
+    }
+
+    /**
+     * find the nearest distance from the targeted sample within the cluster with centerId
+     * @param sample
+     * @param centerId
+     * @return
+     */
+    public double findNearestDistanceToCenter (Sample sample, int centerId) {
+        double minDistance = Double.MAX_VALUE;
+        List<Integer> idList = clusterToSampleMap.get(centerId);
+        for(int a=0; a<idList.size(); a++){
+            double distance = twoSampleDistance(sample, samples.get(idList.get(a)));
+            if(distance < minDistance){
+                minDistance = distance;
+            }
+        }
+        return minDistance;
+    }
+
+    public double evaluate () {
+        int total = testingSamples.size();
+        int error = 0;
+        int TP = 0;
+        int FP = 0;
+        int TN = 0;
+        int FN = 0;
+
+        for( Sample sample : testingSamples){
+            int realLabel = (int) Double.parseDouble(sample.getLabel());
+            int preLabel = (int) Double.parseDouble(sample.getPredictLabel());
+            if(realLabel != preLabel){
+                error++;
+            }
+            if(realLabel == 0){
+                if(preLabel == 0){
+                    TN++;
+                }else {
+                    FP++;
+                }
+            }else {
+                if(preLabel == 0){
+                    FN++;
+                }else {
+                    TP++;
+                }
+            }
+        }
+
+        double accuracy = 1 - ((double)error)/total;
+        double detection_rate = -1;
+        if(TP+FN > 0){
+            detection_rate = ((double)TP)/(TP+FN);
+        }
+        System.out.println("total: " + total);
+        System.out.println("TP: " + TP);
+        System.out.println("TN: " + TN);
+        System.out.println("FP: " + FP);
+        System.out.println("FN: " + FN);
+        System.out.println("error: " + error);
+        System.out.println("accuracy: " + accuracy);
+        System.out.println("detection_rate: " + detection_rate);
+        return accuracy;
+    }
+
+    public void output (String outPathResult) {
+        List<String[]> resultsList = new ArrayList<>();
+        resultsList.add(new String[]{"flowNo", "data_class", "predicted_class"});
+        for( int a=0; a<testingSamples.size(); a++){
+            resultsList.add(new String[]{a + "", testingSamples.get(a).getLabel(), testingSamples.get(a).getPredictLabel()});
+        }
+
+        CSVUtil.write(outPathResult, resultsList);
+    }
 
     /**
      * 计算gamma
@@ -313,10 +368,15 @@ public class DensityPeakClusterStrict {
 //			gammaMap.put(deltaStdEntry.getKey(), Math.log(gamma+1));//log变换
 //			gammaMap.put(deltaStdEntry.getKey(), Math.pow(Math.E, gamma));//e变换
         }
-        sortedGammaList = new ArrayList<Map.Entry<Integer,Double>>(gammaMap.entrySet());
-        Collections.sort(sortedGammaList, new Comparator<Map.Entry<Integer, Double>>() {
+
+        sortedGammaList = new ArrayList<Pair<Integer, Double>>();
+        for(Map.Entry<Integer, Double> entry : gammaMap.entrySet()){
+            sortedGammaList.add(new ImmutablePair<>(entry.getKey(), entry.getValue()));
+        }
+
+        Collections.sort(sortedGammaList, new Comparator<Pair<Integer, Double>>() {
             @Override
-            public int compare(Map.Entry<Integer, Double> o1, Map.Entry<Integer, Double> o2) {
+            public int compare(Pair<Integer, Double> o1, Pair<Integer, Double> o2) {
                 Double temp1 = o1.getValue();
                 Double temp2 = o2.getValue();
                 return -temp1.compareTo(temp2);//倒序排列
@@ -329,10 +389,14 @@ public class DensityPeakClusterStrict {
      */
     public void calDelta() {
         //局部密度由大到小排序
-        sortedDensityList = new ArrayList<Map.Entry<Integer,Double>>(densityCountMap.entrySet());
-        Collections.sort(sortedDensityList, new Comparator<Map.Entry<Integer, Double>>() {
+        sortedDensityList = new ArrayList<Pair<Integer, Double>>();
+        for(Map.Entry<Integer, Double> entry : densityCountMap.entrySet()){
+            sortedDensityList.add(new ImmutablePair<>(entry.getKey(), entry.getValue()));
+        }
+
+        Collections.sort(sortedDensityList, new Comparator<Pair<Integer, Double>>() {
             @Override
-            public int compare(Map.Entry<Integer, Double> o1, Map.Entry<Integer, Double> o2) {
+            public int compare(Pair<Integer, Double> o1, Pair<Integer, Double> o2) {
                 Double temp1 = o1.getValue();
                 Double temp2 = o2.getValue();
                 return -temp1.compareTo(temp2);//倒序排列
@@ -380,10 +444,15 @@ public class DensityPeakClusterStrict {
                 minDelta = deltaEntry.getValue();
             }
         }
-        sortedDeltaList = new ArrayList<Map.Entry<Integer,Double>>(deltaMap.entrySet());
-        Collections.sort(sortedDeltaList, new Comparator<Map.Entry<Integer, Double>>() {
+
+        sortedDeltaList = new ArrayList<Pair<Integer, Double>>();
+        for(Map.Entry<Integer, Double> entry : deltaMap.entrySet()){
+            sortedDeltaList.add(new ImmutablePair<>(entry.getKey(), entry.getValue()));
+        }
+
+        Collections.sort(sortedDeltaList, new Comparator<Pair<Integer, Double>>() {
             @Override
-            public int compare(Map.Entry<Integer, Double> o1, Map.Entry<Integer, Double> o2) {
+            public int compare(Pair<Integer, Double> o1, Pair<Integer, Double> o2) {
                 Double temp1 = o1.getValue();
                 Double temp2 = o2.getValue();
                 return -temp1.compareTo(temp2);//倒序排列
@@ -426,7 +495,7 @@ public class DensityPeakClusterStrict {
             densityCountMap.put(i, 0d);
         }
         for(Map.Entry<String, Double> diss : pairDistanceMap.entrySet()) {
-            if(diss.getValue() < dcThreshold) {
+            if(diss.getValue() <= dcThreshold) {
                 String[] segs = diss.getKey().split(" ");
                 int[] indexs = new int[2];
                 indexs[0] = Integer.parseInt(segs[0]);

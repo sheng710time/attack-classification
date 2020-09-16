@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,7 @@ public class LOF_AD {
         }
 
         EuclideanDistanceOverZero edoz = new EuclideanDistanceOverZero();
+        edoz.setDontNormalize(true);
         LinearNNSearch linearNNSearch = new LinearNNSearch();
         linearNNSearch.setDistanceFunction(edoz);
         lof.setInputFormat(trainingData);
@@ -80,7 +82,22 @@ public class LOF_AD {
         isTrained = true;
     }
 
-    public double evaluateTrainingData (double cutOffValue, int KNN) throws Exception {
+    /**
+     * compare value with cutOffValue, if smaller return true, else return false
+     * @param including whether including "equal to" cutOffValue
+     * @param value
+     * @param cutOffValue
+     * @return
+     */
+    public boolean compareCutOffValue (boolean including, double value, double cutOffValue) {
+        if(including){
+            return value <= cutOffValue;
+        }else {
+            return value < cutOffValue;
+        }
+    }
+
+    public double evaluateTrainingData (double cutOffValue, int KNN, boolean including) throws Exception {
         if(!isTrained){
             throw new IllegalStateException("Lof has not been trained.");
         }
@@ -90,7 +107,9 @@ public class LOF_AD {
         innerTrainingData = new ArrayList<>();
         outlierTrainingData = new ArrayList<>();
         for(Instance inst : predictedData){
-            int preLabel = inst.value(inst.numAttributes()-1) < cutOffValue ? 0:1;
+            double lof = inst.value(inst.numAttributes()-1);
+            double lofFormatted = new BigDecimal(lof).setScale(4, BigDecimal.ROUND_HALF_UP).doubleValue();
+            int preLabel = compareCutOffValue(including, lofFormatted, cutOffValue) ? 0:1;
             if(preLabel == 0){
                 innerTrainingData.add(inst);
             }else {
@@ -103,6 +122,7 @@ public class LOF_AD {
         double[] knnDistances = new double[innerTrainingData.size()];
 
         EuclideanDistanceOverZero edoz = new EuclideanDistanceOverZero();
+        edoz.setDontNormalize(true);
         LinearNNSearch lnn = new LinearNNSearch();
         lnn.setDistanceFunction(edoz);
         lnn.setInstances(trainingData);
@@ -120,7 +140,35 @@ public class LOF_AD {
         }
 
         double avgKnnDistance = totalKnnDistance / innerTrainingData.size();
+        System.out.println("cutOffValue: " + cutOffValue);
+        System.out.println("innerNum: " + innerTrainingData.size());
+        System.out.println("outerNum: " + outlierTrainingData.size());
+        System.out.println("avgKnnDistance: " + avgKnnDistance);
         return avgKnnDistance;
+    }
+
+    public void outputOutliers (String outPathOutliers) {
+        if(outlierTrainingData==null || outlierTrainingData.size()<1){
+            return;
+        }
+        /* Output data to csv file */
+        int numAttributes = outlierTrainingData.get(0).numAttributes();
+        String[] header = new String[numAttributes];
+        for(int a=0; a<numAttributes; a++){
+            header[a] = "attr" + (a+1);
+        }
+
+        List<String[]> strDataList = new ArrayList<>();
+        strDataList.add(header);
+        for(int b=0; b<outlierTrainingData.size(); b++) {
+            Instance instance = outlierTrainingData.get(b);
+            String[] data = new String[numAttributes];
+            for (int d = 0; d < numAttributes; d++) {
+                data[d] = instance.toDoubleArray()[d] + "";
+            }
+            strDataList.add(data);
+        }
+        CSVUtil.write(outPathOutliers, strDataList);
     }
 
     public void test (String testFilePath, int classIndex, boolean includeHeader, String[] options) throws Exception {
@@ -143,39 +191,34 @@ public class LOF_AD {
         isTested = true;
     }
 
-    public double evaluate (String testFilePathNo, String testFilePathLabel, double cutOffValue) throws Exception {
+    public double evaluate (double cutOffValue) {
         if(!isTested){
             throw new IllegalStateException("No testing data has been predicted.");
         }
 
-        Map<Integer, List<Integer>> numbersMap = FileLoader.loadNumbersFromCSV(testFilePathNo);
-        Map<Integer, Integer> labels = FileLoader.loadLabelsFromCSV(testFilePathLabel);
-
-        int total = 0;
+        int total = predictedData.size();
         int TP = 0;
         int FP = 0;
         int TN = 0;
         int FN = 0;
 
         for( int a=0; a<predictedData.size(); a++){
-            List<Integer> numbers = numbersMap.get(a);
-            for(int number : numbers){
-                total++;
-                int realLabel = labels.get(number);
-                int preLabel = predictedData.get(a).value(predictedData.get(a).numAttributes()-1) < cutOffValue ? 0:1;
+            int realLabel = (int) predictedData.get(a).value(predictedData.classIndex());
+            double lof = predictedData.get(a).value(predictedData.numAttributes()-1);
+            double lofFormatted = new BigDecimal(lof).setScale(4, BigDecimal.ROUND_HALF_UP).doubleValue();
+            int preLabel = compareCutOffValue(true, lofFormatted, cutOffValue)? 0:1;
 
-                if(realLabel == 1){
-                    if(preLabel == 1){
-                        TP++;
-                    }else {
-                        FN++;
-                    }
+            if(realLabel == 0){
+                if(preLabel == 0){
+                    TN++;
                 }else {
-                    if(preLabel == 1){
-                        FP++;
-                    }else {
-                        TN++;
-                    }
+                    FP++;
+                }
+            }else {
+                if(preLabel == 0){
+                    FN++;
+                }else {
+                    TP++;
                 }
             }
         }
@@ -195,23 +238,20 @@ public class LOF_AD {
         return accuracy;
     }
 
-    public void output (String testFilePathNo, String testFilePathLabel, String outPathResult, double cutOffValue) throws Exception {
+    public void output (String outPathResult, double cutOffValue){
         if(!isTested){
             throw new IllegalStateException("No testing data has been predicted.");
         }
 
-        Map<Integer, List<Integer>> numbersMap = FileLoader.loadNumbersFromCSV(testFilePathNo);
-        Map<Integer, Integer> labels = FileLoader.loadLabelsFromCSV(testFilePathLabel);
-
         List<String[]> resultsList = new ArrayList<>();
-        resultsList.add(new String[]{"flowNo", "packetNo", "data_class", "predicted_class", "lof_score"});
+        resultsList.add(new String[]{"flowNo", "data_class", "predicted_class", "lof_score"});
         for( int a=0; a<predictedData.size(); a++){
-            List<Integer> numbers = numbersMap.get(a);
-            for(int number : numbers){
-                int preLabel = predictedData.get(a).value(predictedData.get(a).numAttributes()-1) < cutOffValue ? 0:1;
-                String[] result = new String[]{a+"", number+"", labels.get(number)+"", preLabel+"", predictedData.get(a).value(predictedData.get(a).numAttributes()-1)+""};
-                resultsList.add(result);
-            }
+            int realLabel = (int) predictedData.get(a).value(predictedData.classIndex());
+            double lof = predictedData.get(a).value(predictedData.numAttributes()-1);
+            double lofFormatted = new BigDecimal(lof).setScale(4, BigDecimal.ROUND_HALF_UP).doubleValue();
+            int preLabel = compareCutOffValue(true, lofFormatted, cutOffValue)? 0:1;
+            String[] result = new String[]{a+"", realLabel+"", preLabel+"", predictedData.get(a).value(predictedData.numAttributes()-1)+""};
+            resultsList.add(result);
         }
         CSVUtil.write(outPathResult, resultsList);
     }
@@ -221,7 +261,7 @@ public class LOF_AD {
      * @param filePath
      * @throws Exception
      */
-    public void saveLOF (String filePath) throws Exception {//TODO test
+    public void saveLOF (String filePath) throws Exception {
         if(!isTrained){
             throw new IllegalStateException("Lof has not been trained.");
         }
@@ -249,7 +289,7 @@ public class LOF_AD {
      * @return
      * @throws Exception
      */
-    public static LOF readLOF (String filePath) throws Exception {//TODO test
+    public static LOF readLOF (String filePath) throws Exception {
         File file = new File(filePath);
         if(!file.exists()){
             throw new NullPointerException(filePath + " does not exist.");
@@ -259,7 +299,7 @@ public class LOF_AD {
         return lof;
     }
 
-    public static Instances test (LOF lof, String testFilePath, int classIndex, boolean includeHeader, String[] options) throws Exception {//TODO test
+    public static Instances test (LOF lof, String testFilePath, int classIndex, boolean includeHeader, String[] options) throws Exception {
         if(lof == null){
             throw new NullPointerException("lof is null.");
         }
@@ -272,7 +312,7 @@ public class LOF_AD {
         return predictedData;
     }
 
-    public static double evaluate (Instances predictedData, String testFilePathNo, String testFilePathLabel, double cutOffValue) throws Exception {//TODO test
+    public static double evaluate (Instances predictedData, String testFilePathNo, String testFilePathLabel, double cutOffValue) throws Exception {
         Map<Integer, List<Integer>> numbersMap = FileLoader.loadNumbersFromCSV(testFilePathNo);
         Map<Integer, Integer> labels = FileLoader.loadLabelsFromCSV(testFilePathLabel);
 
@@ -287,7 +327,7 @@ public class LOF_AD {
             for(int number : numbers){
                 total++;
                 int realLabel = labels.get(number);
-                int preLabel = predictedData.get(a).value(predictedData.get(a).numAttributes()-1) < cutOffValue ? 0:1;
+                int preLabel = predictedData.get(a).value(predictedData.get(a).numAttributes()-1) <= cutOffValue ? 0:1;
 
                 if(realLabel == 1){
                     if(preLabel == 1){

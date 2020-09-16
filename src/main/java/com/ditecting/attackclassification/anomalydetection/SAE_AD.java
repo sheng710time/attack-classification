@@ -52,10 +52,6 @@ public class SAE_AD {
     private boolean isTested;
     private int mode; // 0: none, 1: normalize, 2: standardize
 
-    public SAE_AD(){
-        this(20, 16, 8, 2);
-    }
-
     public SAE_AD (int first, int second, int third, int mode){
         this.mode = mode;
 
@@ -156,6 +152,67 @@ public class SAE_AD {
         this.isTrained = true;
     }
 
+    public void encode (String testFilePath, int labelIndex, int numClasses, int batchSizeTesting, String outPathEncode) throws IOException, InterruptedException {
+        if(!isTrained){
+            throw new IllegalStateException("SAE has not been trained.");
+        }
+
+        /* Load testing data */
+        iterTesting = readCSVDataset(testFilePath, batchSizeTesting, labelIndex, numClasses);
+        List<INDArray> featuresTest = new ArrayList<>();
+        List<INDArray> labelsTest = new ArrayList<>();
+        while(iterTesting.hasNext()){
+            DataSet ds = iterTesting.next();
+            featuresTest.add(ds.getFeatures());
+            labelsTest.add(ds.getLabels());
+        }
+
+        /* encode testing data */
+        List<String[]> resultsList = new ArrayList<>();
+        List<Triple<Integer, INDArray, INDArray>> encodedDataList = new ArrayList<>();
+        int encodeSize = encoder.layerSize(encoder.getnLayers()-1)+1; // +1 for the label column
+        String[] header = new String[encodeSize];
+        for(int a=0; a<encodeSize; a++){
+            header[a] = "attr" + (a+1);
+        }
+        resultsList.add(header);
+
+        int count = 0;
+        for(int k=0; k<featuresTest.size(); k++){
+            INDArray testElement = featuresTest.get(k);
+            INDArray testElementLabels = labelsTest.get(k);
+            if(normalization != null){
+                normalization.transform(testElement);//Normalize data
+            }
+            int nRows = testElement.rows();
+            for( int j=0; j<nRows; j++){
+                INDArray example = testElement.getRow(j, true);
+                int label = (int) testElementLabels.getRow(j, true).getDouble();
+//                List<INDArray> ss = net.feedForward(example);
+//                double score = net.score(new DataSet(example, example));
+                INDArray encodedData = encoder.output(example);
+                encodedDataList.add(new ImmutableTriple<>(count++, encodedData, example));
+                String[] code = new String[encodeSize];
+                for(int a=0; a<encodeSize-1; a++){
+                    code[a] = encodedData.getRow(0).getColumn(a).getDouble()+"";
+                }
+                code[encodeSize-1] = label + "";
+                resultsList.add(code);
+            }
+        }
+
+        CSVUtil.write(outPathEncode, resultsList);
+    }
+
+    public INDArray decode (INDArray encodedData)  {
+        if(!isTrained){
+            throw new IllegalStateException("SAE has not been trained.");
+        }
+
+        /* decode data */
+        return decoder.output(encodedData);
+    }
+
     public void test (String testFilePath, int labelIndex, int numClasses, int batchSizeTesting) throws IOException, InterruptedException {
         if(!isTrained){
             throw new IllegalStateException("SAE has not been trained.");
@@ -189,64 +246,6 @@ public class SAE_AD {
         }
 
         this.isTested = true;
-    }
-
-    public void encode (String testFilePath, int labelIndex, int numClasses, int batchSizeTesting, String outPathEncode) throws IOException, InterruptedException {
-        if(!isTrained){
-            throw new IllegalStateException("SAE has not been trained.");
-        }
-
-        /* Load testing data */
-        iterTesting = readCSVDataset(testFilePath, batchSizeTesting, labelIndex, numClasses);
-        List<INDArray> featuresTest = new ArrayList<>();
-        List<INDArray> labelsTest = new ArrayList<>();
-        while(iterTesting.hasNext()){
-            DataSet ds = iterTesting.next();
-            featuresTest.add(ds.getFeatures());
-            INDArray indexes = Nd4j.argMax(ds.getLabels(),1); //Convert from one-hot representation -> index
-            labelsTest.add(indexes);
-        }
-
-        /* encode testing data */
-        List<String[]> resultsList = new ArrayList<>();
-        List<Triple<Integer, INDArray, INDArray>> encodedDataList = new ArrayList<>();
-        int encodeSize = encoder.layerSize(encoder.getnLayers()-1);
-        String[] header = new String[encodeSize];
-        for(int a=0; a<encodeSize; a++){
-            header[a] = "attr" + (a+1);
-        }
-        resultsList.add(header);
-
-        int count = 0;
-        for(INDArray testElement : featuresTest){
-            if(normalization != null){
-                normalization.transform(testElement);//Normalize data
-            }
-            int nRows = testElement.rows();
-            for( int j=0; j<nRows; j++){
-                INDArray example = testElement.getRow(j, true);
-                List<INDArray> ss = net.feedForward(example);
-                double score = net.score(new DataSet(example, example));
-                INDArray encodedData = encoder.output(example);
-                encodedDataList.add(new ImmutableTriple<>(count++, encodedData, example));
-                String[] code = new String[encodeSize];
-                for(int a=0; a<encodeSize; a++){
-                    code[a] = encodedData.getRow(0).getColumn(a).getDouble()+"";
-                }
-                resultsList.add(code);
-            }
-        }
-
-        CSVUtil.write(outPathEncode, resultsList);
-    }
-
-    public INDArray decode (INDArray encodedData)  {
-        if(!isTrained){
-            throw new IllegalStateException("SAE has not been trained.");
-        }
-
-        /* decode data */
-        return decoder.output(encodedData);
     }
 
     public double evaluate (String testFilePathNo, String testFilePathLabel, double cutOffValue) throws Exception {

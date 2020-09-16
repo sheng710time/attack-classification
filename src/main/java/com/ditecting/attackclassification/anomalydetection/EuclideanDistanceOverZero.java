@@ -11,14 +11,14 @@ import weka.core.neighboursearch.PerformanceStats;
  */
 public class EuclideanDistanceOverZero extends EuclideanDistance {
 
-    private double delta = 0.00000001;
+    private double delta = 1e-16;
 
     public void setDelta(double delta) {
         this.delta = delta;
     }
 
     public double distance(Instance first, Instance second, double cutOffValue, PerformanceStats stats) {
-        return Math.sqrt(super.distance(first, second, cutOffValue, stats)) + delta;
+        return super.distance(first, second, cutOffValue, stats) + delta;
     }
 
 }
