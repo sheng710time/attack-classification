@@ -1,10 +1,8 @@
 package com.ditecting.attackclassification;
 
-import com.ditecting.attackclassification.anomalyclassification.DensityPeakClusterStrict;
-import com.ditecting.attackclassification.anomalyclassification.ModelIO;
+import com.ditecting.attackclassification.anomalyclassification.DensityPeakClusterStrictDistributed;
 import com.ditecting.attackclassification.anomalydetection.LOF_AD;
 import com.ditecting.attackclassification.anomalydetection.SAE_AD;
-import com.ditecting.attackclassification.anomalydetection.SDAE_AD;
 import com.ditecting.attackclassification.dataprocess.FileLoader;
 import com.ditecting.attackclassification.dataprocess.Preprocessor;
 import org.mybatis.spring.annotation.MapperScan;
@@ -13,15 +11,8 @@ import org.springframework.boot.Banner;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import weka.core.Instances;
-import weka.core.SerializationHelper;
-import weka.filters.Filter;
-import weka.filters.unsupervised.attribute.LOF;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 @SpringBootApplication(scanBasePackages = {"com.ditecting.*"})
 @MapperScan("com.ditecting.honeyeye.dao")
@@ -47,22 +38,30 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 //        callPreprocessor();
 
         /* SAE */
-        callSAE_AD();
+//        callSAE_AD();
 
         /* LOF */
 //        callLOF_AD ();
 
         /* DPC */
-//        callDPC();
+        callDPC();
 
         System.out.println("");
     }
 
-    public void callDPC () throws IOException {
+    public void callDPC () throws IOException, InterruptedException {
         String trainFilePathLabel = "C:\\Users\\18809\\Desktop\\test5\\KDDTrain+_edited_ef_ed_oh_norm_part.csv";
         int trainIndex = -1;
         String trainFilePath = null;
         int labelIndex = 122;
+        int batchSize = 2600;
+        DensityPeakClusterStrictDistributed dhcsd = new DensityPeakClusterStrictDistributed();
+        dhcsd.init(trainFilePathLabel, trainFilePath, labelIndex, trainIndex, batchSize);
+        dhcsd.train();
+
+//        DHCSD.train(trainFilePathLabel, trainFilePath, labelIndex, trainIndex, batchSize);
+
+        /* DPCS
         DensityPeakClusterStrict DPCS = new DensityPeakClusterStrict();
         DPCS.train(trainFilePathLabel, trainFilePath, labelIndex, trainIndex);
         String modelFilePath = "C:\\Users\\18809\\Desktop\\test5\\DPCS.model";
@@ -74,7 +73,7 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         DPCS.test(testsFilePath, labelIndex, KNC);
         DPCS.evaluate();
         String outPathResult = "C:\\Users\\18809\\Desktop\\test5\\KDDTrain+_edited_ef_ed_oh_norm_part_result_dpc.csv";
-        DPCS.output(outPathResult);
+        DPCS.output(outPathResult);*/
     }
 
     public void callSAE_AD () throws Exception {

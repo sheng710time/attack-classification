@@ -1,6 +1,8 @@
 package com.ditecting.attackclassification.anomalyclassification;
 
 import com.ditecting.attackclassification.dataprocess.CSVUtil;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -15,19 +17,21 @@ import java.util.*;
  * @date 2020/8/29 10:54
  */
 @Slf4j
+@Getter
+@Setter
 public class DensityPeakClusterStrict implements Serializable{
     private static final long serialVersionUID = 326446623915254422L;
     private double dc;
-    private ArrayList<Sample> samples; // training samples
-    private transient ArrayList<Sample> testingSamples; // testing samples
-    private transient HashMap<Integer, Double> densityCountMap;//局部密度Map ：<index,densitycount>
-    private transient ArrayList<Pair<Integer, Double>> sortedDensityList;//由大到小排序的Density list
-    private transient HashMap<Integer, Double> deltaMap;//deltaMap:<index, delta>
-    private transient ArrayList<Pair<Integer, Double>> sortedDeltaList;//由大到小排序的Density list
-    private transient HashMap<Integer, Double> gammaMap;//gammaMap:<index, gamma>
-    private transient ArrayList<Pair<Integer, Double>> sortedGammaList;//由大到小排序的Gamma list
-    private transient HashMap<Integer, Integer> nearestNeighborMap;//每个样本的最近邻：<sampleIndex, nearestNeighborIndex>
-    private transient HashMap<String, Double> pairDistanceMap;//样本对距离：<"index1 index2", distance>
+    private List<Sample> samples; // training samples
+    private transient List<Sample> testingSamples; // testing samples
+    private transient Map<Integer, Double> densityCountMap;//局部密度Map ：<index,densitycount>
+    private transient List<Pair<Integer, Double>> sortedDensityList;//由大到小排序的Density list
+    private transient Map<Integer, Double> deltaMap;//deltaMap:<index, delta>
+    private transient List<Pair<Integer, Double>> sortedDeltaList;//由大到小排序的Density list
+    private transient Map<Integer, Double> gammaMap;//gammaMap:<index, gamma>
+    private transient List<Pair<Integer, Double>> sortedGammaList;//由大到小排序的Gamma list
+    private transient Map<Integer, Integer> nearestNeighborMap;//每个样本的最近邻：<sampleIndex, nearestNeighborIndex>
+    private transient Map<String, Double> pairDistanceMap;//样本对距离：<"index1 index2", distance>
     private transient double maxDelta;//最大Delta
     private transient double minDelta;//最小Delta
     private transient double maxDensity;//最大Density
@@ -35,11 +39,51 @@ public class DensityPeakClusterStrict implements Serializable{
     private transient double maxDistance;//最大样本距离
     private transient double minDistance;//最小样本距离
     private transient double neighborPercentage;//dc选取比例
-    private ArrayList<Integer> centerList;//clustering id list
-    private transient HashMap<Integer, Integer> sampleToClusterMap;//划分的聚类结果<sampleIndex, clusterIndex>
-    private HashMap<Integer, List<Integer>> clusterToSampleMap;//划分的聚类结果<clusterIndex, List(sampleIndex)>
-    private HashMap<Integer, Integer> clustersLabels;// labels of clusters <clusterIndex, class>
-    private HashMap<Integer, Sample> clusterCenterMap; // centers of clusters <clusterIndex, center-sample>
+    private transient Map<Integer, Integer> sampleToClusterMap;//划分的聚类结果<sampleIndex, clusterIndex>
+    private Map<Integer, List<Integer>> clusterToSampleMap;//划分的聚类结果<clusterIndex, List(sampleIndex)>
+    private Map<Integer, Integer> clustersLabels;// labels of clusters <clusterIndex, class>
+    private Map<Integer, Sample> clusterCenterMap; // centers of clusters <clusterIndex, center-sample>
+
+    public void init (List<Sample> samples) {
+        log.info("Start to calculate dc.");
+        this.samples = samples;
+        this.calPairDistance();
+        dc = this.findDC();
+        log.info("Get dc:" + dc);
+    }
+
+    public void train (){
+        log.info("Start to train.");
+
+        this.calRhoCK(dc);//截断距离
+//		cluster.calRhoGK(dc);//高斯距离
+        this.calDelta();
+        this.calGamma();
+
+        /* Cluster */
+        this.clusterByHeuristics(dc);
+        log.info("End to train.");
+    }
+
+    public void train (List<Sample> samples){
+        log.info("Start to train.");
+        this.samples = samples;
+
+        /* Calculate statistical properties of data */
+        this.calPairDistance();
+//        dc = 0.10007584708487159/20;
+        log.info("Start to calculate dc.");
+        dc = this.findDC();
+        log.info("Get dc:" + dc);
+        this.calRhoCK(dc);//截断距离
+//		cluster.calRhoGK(dc);//高斯距离
+        this.calDelta();
+        this.calGamma();
+
+        /* Cluster */
+        this.clusterByHeuristics(dc);
+        log.info("End to train.");
+    }
 
     public void train (String trainFilePathLabel, String trainFilePath, int trainLabelIndex, int trainIndex) throws IOException {
         log.info("Start to train.");
@@ -69,7 +113,7 @@ public class DensityPeakClusterStrict implements Serializable{
 
         /* Cluster */
         this.clusterByHeuristics(dc);
-        log.info("Finish training.");
+        log.info("End to train.");
     }
 
     /**
@@ -78,7 +122,7 @@ public class DensityPeakClusterStrict implements Serializable{
      */
     public void clusterByCenterNum(int centerNum, int dimension) {
         //Generate clustering centers according to centerNum
-        centerList = new ArrayList<Integer>();
+        List<Integer> centerList = new ArrayList<Integer>();
         sampleToClusterMap = new HashMap<Integer, Integer>();
         for(int a=0; a<centerNum; a++){
             centerList.add(sortedGammaList.get(a).getKey());
@@ -201,8 +245,19 @@ public class DensityPeakClusterStrict implements Serializable{
         }
     }
 
-    public void outputClusteringResults (){//TODO incomplete
-
+    public void test (List<Sample> testingSamples, int KNC) {
+        log.info("Start to test.");
+        this.testingSamples = testingSamples;
+        for(int a=0; a<testingSamples.size(); a++){
+            Sample sample = testingSamples.get(a);
+            int centerId = findNearestCenter(sample, dc, KNC);
+            if(centerId != -1){
+                sample.setPredictLabel(clustersLabels.get(centerId)+"");
+            } else {// The sample doesn't belong to any existing classes, and create a new cluster for it
+                sample.setPredictLabel("-1");
+            }
+        }
+        log.info("End to test.");
     }
 
     public void test (String testFilePath, int testLabelIndex, int KNC) throws IOException {
@@ -219,7 +274,7 @@ public class DensityPeakClusterStrict implements Serializable{
                 sample.setPredictLabel("-1");
             }
         }
-        log.info("Finish testing.");
+        log.info("End to test.");
     }
 
     /**
