@@ -44,16 +44,17 @@ public class DensityPeakClusterStrict implements Serializable{
     private Map<Integer, Integer> clustersLabels;// labels of clusters <clusterIndex, class>
     private Map<Integer, Sample> clusterCenterMap; // centers of clusters <clusterIndex, center-sample>
 
-    public void init (List<Sample> samples) {
-        log.info("Start to calculate dc.");
+    public void init (List<Sample> samples, double percentage) {
+//        log.info("Start to init.");
         this.samples = samples;
         this.calPairDistance();
-        dc = this.findDC();
-        log.info("Get dc:" + dc);
+        dc = this.findDc(percentage);
+//        log.info("Get dc:" + dc);
+//        log.info("End to init.");
     }
 
     public void train (){
-        log.info("Start to train.");
+//        log.info("Start to train.");
 
         this.calRhoCK(dc);//截断距离
 //		cluster.calRhoGK(dc);//高斯距离
@@ -62,7 +63,7 @@ public class DensityPeakClusterStrict implements Serializable{
 
         /* Cluster */
         this.clusterByHeuristics(dc);
-        log.info("End to train.");
+//        log.info("End to train.");
     }
 
     public void train (List<Sample> samples){
@@ -73,7 +74,7 @@ public class DensityPeakClusterStrict implements Serializable{
         this.calPairDistance();
 //        dc = 0.10007584708487159/20;
         log.info("Start to calculate dc.");
-        dc = this.findDC();
+        dc = this.findDc();
         log.info("Get dc:" + dc);
         this.calRhoCK(dc);//截断距离
 //		cluster.calRhoGK(dc);//高斯距离
@@ -85,7 +86,7 @@ public class DensityPeakClusterStrict implements Serializable{
         log.info("End to train.");
     }
 
-    public void train (String trainFilePathLabel, String trainFilePath, int trainLabelIndex, int trainIndex) throws IOException {
+    public void train (String trainFilePathLabel, String trainFilePath, int trainLabelIndex, int trainIndex, double percentage) throws IOException {
         log.info("Start to train.");
         /* Load labeled and unlabeled training data */
         samples = new ArrayList<>();
@@ -102,10 +103,10 @@ public class DensityPeakClusterStrict implements Serializable{
 
         /* Calculate statistical properties of data */
         this.calPairDistance();
-//        dc = 0.10007584708487159/20;
-        log.info("Start to calculate dc.");
-        dc = this.findDC();
-        log.info("Get dc:" + dc);
+//        dc = 0.20572434532584769;
+//        log.info("Start to calculate dc.");
+        dc = this.findDc(percentage);
+//        log.info("Get dc:" + dc);
         this.calRhoCK(dc);//截断距离
 //		cluster.calRhoGK(dc);//高斯距离
         this.calDelta();
@@ -375,6 +376,9 @@ public class DensityPeakClusterStrict implements Serializable{
         if(TP+FN > 0){
             detection_rate = ((double)TP)/(TP+FN);
         }
+        System.out.println("The number of training data: " + samples.size());
+        System.out.println("The number of clusters: " + clustersLabels.size());
+        System.out.println("dc: " + dc);
         System.out.println("total: " + total);
         System.out.println("TP: " + TP);
         System.out.println("TN: " + TN);
@@ -628,10 +632,31 @@ public class DensityPeakClusterStrict implements Serializable{
     }
 
     /**
+     * Find dc by percentage
+     * @return
+     */
+    public double findDc(double percentage){
+        List<Double> pairDistanceList = new ArrayList<>();
+        for(Map.Entry<String, Double> dis : pairDistanceMap.entrySet()){
+            pairDistanceList.add(dis.getValue());
+        }
+
+        Collections.sort(pairDistanceList, new Comparator<Double>() {
+            @Override
+            public int compare(Double o1, Double o2) {
+                return o1.compareTo(o2);
+            }
+        });
+
+        int index = (int) (pairDistanceList.size() * percentage) -1;
+        return pairDistanceList.get(index);
+    }
+
+    /**
      * 计算截断距离
      * @return
      */
-    public double findDC(){
+    public double findDc(){
         double tmpMax = maxDistance;
         double tmpMin = minDistance;
         double dc = 0.5 * (tmpMax + tmpMin);

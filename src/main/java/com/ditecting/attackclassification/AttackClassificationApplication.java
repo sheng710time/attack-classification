@@ -1,6 +1,9 @@
 package com.ditecting.attackclassification;
 
+import com.ditecting.attackclassification.anomalyclassification.DensityPeakClusterStrict;
 import com.ditecting.attackclassification.anomalyclassification.DensityPeakClusterStrictDistributed;
+import com.ditecting.attackclassification.anomalyclassification.ModelIO;
+import com.ditecting.attackclassification.anomalyclassification.Sample;
 import com.ditecting.attackclassification.anomalydetection.LOF_AD;
 import com.ditecting.attackclassification.anomalydetection.SAE_AD;
 import com.ditecting.attackclassification.dataprocess.FileLoader;
@@ -13,6 +16,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.io.IOException;
+import java.util.List;
 
 @SpringBootApplication(scanBasePackages = {"com.ditecting.*"})
 @MapperScan("com.ditecting.honeyeye.dao")
@@ -50,30 +54,48 @@ public class AttackClassificationApplication  implements CommandLineRunner {
     }
 
     public void callDPC () throws IOException, InterruptedException {
+        /*DHCSD*/
+        String trainFilePathLabel = "C:\\Users\\18809\\Desktop\\test5\\KDDTrain+_edited_ef_ed_oh_norm.csv";
+        int trainIndex = -1;
+        String trainFilePath = null;
+        int labelIndex = 122;
+        int KNC = 50;
+        double percentage = 0.008;
+        int batchSize = 5000;
+        DensityPeakClusterStrictDistributed dhcsd = new DensityPeakClusterStrictDistributed();
+        dhcsd.init(trainFilePathLabel, trainFilePath, labelIndex, trainIndex, batchSize, percentage);
+        dhcsd.train();
+        String modelFilePath = "C:\\Users\\18809\\Desktop\\test5\\dhcsd_"+dhcsd.getInputSamples().size()+"_"+batchSize+"_"+dhcsd.getDc()+".model";
+        ModelIO.outputModel(modelFilePath, dhcsd);
+//        DensityPeakClusterStrictDistributed dhcsd = (DensityPeakClusterStrictDistributed) ModelIO.inputModel(modelFilePath);
+
+        String testsFilePath = "C:\\Users\\18809\\Desktop\\test5\\KDDTest+_edited_ef_ed_oh_norm.csv";
+        List<Sample> testingSamples = dhcsd.test(testsFilePath, labelIndex, KNC);
+        dhcsd.evaluate(testingSamples);
+//        String outPathResult = "C:\\Users\\18809\\Desktop\\test5\\KDDTest+_edited_ef_ed_oh_norm_result_dhcsd.csv";
+//        dhcsd.output(testingSamples, outPathResult);
+
+        /* DPCS
         String trainFilePathLabel = "C:\\Users\\18809\\Desktop\\test5\\KDDTrain+_edited_ef_ed_oh_norm_part.csv";
         int trainIndex = -1;
         String trainFilePath = null;
         int labelIndex = 122;
-        int batchSize = 2600;
-        DensityPeakClusterStrictDistributed dhcsd = new DensityPeakClusterStrictDistributed();
-        dhcsd.init(trainFilePathLabel, trainFilePath, labelIndex, trainIndex, batchSize);
-        dhcsd.train();
-
-//        DHCSD.train(trainFilePathLabel, trainFilePath, labelIndex, trainIndex, batchSize);
-
-        /* DPCS
-        DensityPeakClusterStrict DPCS = new DensityPeakClusterStrict();
-        DPCS.train(trainFilePathLabel, trainFilePath, labelIndex, trainIndex);
-        String modelFilePath = "C:\\Users\\18809\\Desktop\\test5\\DPCS.model";
-        ModelIO.outputModel(modelFilePath, DPCS);
+        int KNC = 50;
+        double percentage = 0.008;
+        DensityPeakClusterStrict dpcs = new DensityPeakClusterStrict();
+        dpcs.train(trainFilePathLabel, trainFilePath, labelIndex, trainIndex, percentage);
+//        String modelFilePath = "C:\\Users\\18809\\Desktop\\test5\\DPCS.model";
+//        ModelIO.outputModel(modelFilePath, DPCS);
 //        DensityPeakClusterStrict DPCS = (DensityPeakClusterStrict) ModelIO.inputModel(modelFilePath);
 
-        int KNC = 50;
         String testsFilePath = "C:\\Users\\18809\\Desktop\\test5\\KDDTrain+_edited_ef_ed_oh_norm_part.csv";
-        DPCS.test(testsFilePath, labelIndex, KNC);
-        DPCS.evaluate();
-        String outPathResult = "C:\\Users\\18809\\Desktop\\test5\\KDDTrain+_edited_ef_ed_oh_norm_part_result_dpc.csv";
-        DPCS.output(outPathResult);*/
+        dpcs.test(testsFilePath, labelIndex, KNC);
+        dpcs.evaluate();
+//        String outPathResult = "C:\\Users\\18809\\Desktop\\test5\\KDDTrain+_edited_ef_ed_oh_norm_part_result_dpc.csv";
+//        dpcs.output(outPathResult);*/
+
+        System.out.println("KNC: " + KNC);
+        System.out.println("percentage: " + percentage);
     }
 
     public void callSAE_AD () throws Exception {
