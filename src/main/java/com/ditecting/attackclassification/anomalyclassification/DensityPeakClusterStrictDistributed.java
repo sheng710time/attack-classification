@@ -174,7 +174,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         for(Map.Entry<Integer, Integer> entry : combinedClustersLabels.entrySet()){
             centerList.add(entry.getKey());
         }
-
+        log.info("Find " + centerList.size() +" batch centers.");
         Map<Integer, Integer> centerToMasterMap = new HashMap<>();// <centerId, masterId>
         Map<Integer, List<Integer>> masterToCentersMap = new HashMap<>();// <masterId, centerId list>
         for(int a=0; a<centerList.size(); a++){
