@@ -636,20 +636,17 @@ public class DensityPeakClusterStrict implements Serializable{
      * @return
      */
     public double findDc(double percentage){
-        List<Double> pairDistanceList = new ArrayList<>();
+        int index = (int) (pairDistanceMap.size() * percentage) -1;
+        PriorityQueue<Double>  q = new PriorityQueue<>((o1, o2) -> -o1.compareTo(o2));
+
         for(Map.Entry<String, Double> dis : pairDistanceMap.entrySet()){
-            pairDistanceList.add(dis.getValue());
+            q.offer(dis.getValue());
+            if(q.size() > index){
+                q.poll();
+            }
         }
 
-        Collections.sort(pairDistanceList, new Comparator<Double>() {
-            @Override
-            public int compare(Double o1, Double o2) {
-                return o1.compareTo(o2);
-            }
-        });
-
-        int index = (int) (pairDistanceList.size() * percentage) -1;
-        return pairDistanceList.get(index);
+        return q.peek();
     }
 
     /**
