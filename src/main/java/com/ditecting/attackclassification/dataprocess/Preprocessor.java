@@ -263,6 +263,72 @@ public class Preprocessor {
     }
 
     /**
+     * Discretize SCADA data
+     * @param inPathList
+     * @param includeHeader
+     * @throws Exception
+     */
+    public void transformSCADAData (List<String> inPathList, int classIndex, boolean includeHeader) throws Exception {
+        /* Create a temp CSV file to store all CSV files*/
+        List<String[]> strsListAll = new ArrayList<>();
+        int [] sizes = new int[inPathList.size()];
+        for(int a=0; a<inPathList.size(); a++){
+            List<String[]> strsList = CSVUtil.readMulti(inPathList.get(a)+".csv", includeHeader);
+            sizes[a] = strsList.size();
+            if(strsListAll.size() < 1 && includeHeader && strsList.size()>0){
+                String[] header = new String[strsList.get(0).length];
+                for(int b=0; b<header.length; b++){
+                    header[b] = "attr" + (b+1);
+                }
+                strsListAll.add(header);
+            }
+            strsListAll.addAll(strsList);
+        }
+        String tempFileName = inPathList.get(0)+"_temp_"+System.currentTimeMillis()+".csv";
+        CSVUtil.write(tempFileName, strsListAll);
+
+        /* Load all instances from the temp CSV file */
+        String[] optionsNominal = new String[]{"-R", "first-last"};
+        Instances instAll = FileLoader.loadInstancesFromCSV(tempFileName, classIndex, includeHeader, optionsNominal);
+
+        /* Discretize continuous data (eq freq) : numeric attr->nominal attr including data types and values */
+        Discretize discretizeEF = new Discretize();
+        discretizeEF.setOptions(new String[]{"-B", "100", "-R", "first-last", "-F"});//"-F" equal frequency method for discretization
+        discretizeEF.setInputFormat(instAll);
+        Instances instAll_EF = Filter.useFilter(instAll, discretizeEF);
+
+        /* Output data to csv file */
+        String[] header = new String[instAll_EF.get(0).numAttributes()];
+        for(int a=0; a<instAll_EF.get(0).numAttributes(); a++){
+            header[a] = "attr" + (a+1);
+        }
+        int index = 0;
+        for(int b=0; b<inPathList.size(); b++) {
+            List<String[]> strDataList = new ArrayList<>();
+            strDataList.add(header);
+            for (int c = 0; c < sizes[b]; c++) {
+                Instance instance = instAll_EF.get(index++);
+                String[] data = new String[instAll_EF.numAttributes()];
+                for (int d = 0; d < instance.numAttributes(); d++) {
+                    data[d] = instance.toDoubleArray()[d] + "";
+                }
+                strDataList.add(data);
+            }
+
+            String suffix = "_ef.csv";
+            CSVUtil.write(inPathList.get(b)+suffix, strDataList);
+        }
+
+        /* Delete the temp file*/
+        System.gc();
+        File file = new File(tempFileName);
+        boolean flag = false;
+        while(!flag){
+            flag = file.delete();
+        }
+    }
+
+    /**
      * generate label file
      *
      * @param outPath
