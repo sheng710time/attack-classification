@@ -18,7 +18,7 @@ honeyeye:
     outputtingGrain: 2 # 0:rawPacket, 1:packet, 2:flow, 3:session
     outputtingTimeout: 10  # in [s]
     pluginGrain: 2 # 0:rawPacket, 1:packet, 2:flow, 3:session
-    pluginTimeout: 1  # in [s]
+    pluginTimeout: 0.5  # in [s]
     meetingTimeout: 100000000000000000  # in [s]
     segmentMax: 10000
     transmittingListener:
