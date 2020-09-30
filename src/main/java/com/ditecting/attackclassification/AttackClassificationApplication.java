@@ -48,7 +48,7 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 //        callSAE_AD();
 
         /* LOF */
-//        callLOF_AD ();
+        callLOF_AD ();
 
         /* DPC */
 //        callDPCS();
@@ -111,8 +111,8 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         int third = 2;
         SAE_AD saeAD = new SAE_AD(first, second, third, 0);
         String trainFilePath = desktopPath + "\\test3\\dealed\\run1_6rtu(1)_ef_norm.csv";
-        String encodeFilePath = desktopPath + "\\test3\\dealed\\attacks.csv";
-        String outPathEncode = desktopPath + "\\test3\\dealed\\attacks"+ "_encode_" + second + "-" +third +".csv";
+        String encodeFilePath = desktopPath + "\\test3\\dealed\\run1_6rtu(1) && attacks.csv";
+        String outPathEncode = desktopPath + "\\test3\\dealed\\run1_6rtu(1) && attacks"+ "_encode_" + second + "-" +third +".csv";
         int labelIndex = 20;
         int numClasses = 1;
         int batchSizeTraining = 100;
@@ -130,7 +130,7 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         /* Build LOF model */
         LOF_AD lofAD = new LOF_AD(0);
         String trainFilePath = desktopPath + "\\test3\\dealed\\run1_6rtu(1)_ef_norm.csv";
-        int KNN = 10;
+        int KNN = 50;
         int classIndex = 0;
         boolean includeHeader = true;
         String[] options = new String[]{"-R", "first-last"};
@@ -139,8 +139,8 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         /* Evaluate training data */
         double cutOffValue = 1.1;
         lofAD.evaluateTrainingData(cutOffValue, KNN, true);
-//        String outPathOutliers = desktopPath + "\\test3\\dealed\\run1_6rtu(1)_ef_norm_outliers_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
-//        lofAD.outputOutliers(outPathOutliers);
+        String outPathOutliers = desktopPath + "\\test3\\dealed\\run1_6rtu(1)_ef_norm_outliers_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
+        lofAD.outputOutliers(outPathOutliers);
 
         /* Save LOF model */
 //        String modelPath = desktopPath + "\\test2\\LOF.model";
@@ -148,12 +148,12 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         /* Read LOF model */
 //        LOF lof = LOF_AD.readLOF(modelPath);
 
-        /* Test testing data
-        String testFilePath = desktopPath + "\\test3\\dealed\\attacks.csv";
+        /* Test testing data*/
+        String testFilePath = desktopPath + "\\test3\\dealed\\attacks_ef_norm.csv";
         lofAD.test(testFilePath, classIndex, includeHeader, options);
         lofAD.evaluate(cutOffValue);
-        String outPathResult = desktopPath + "\\test3\\dealed\\attacks_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
-        lofAD.output(outPathResult, cutOffValue);*/
+        String outPathResult = desktopPath + "\\test3\\dealed\\attacks_ef_norm_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
+        lofAD.output(outPathResult, cutOffValue);
 
 //        Instances predictedData = LOF_AD.test(lof, testFilePath, classIndex, includeHeader, options);
 //        LOF_AD.evaluate(predictedData, testFilePathNo, testFilePathLabel, cutOffValue);
