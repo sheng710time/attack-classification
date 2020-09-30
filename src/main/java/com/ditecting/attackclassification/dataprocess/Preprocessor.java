@@ -748,10 +748,15 @@ public class Preprocessor {
      *
      * @return
      */
-    private int getSrcPort(JsonObject segment){
-        JsonObject tcpHeader = segment.get("tcpHeader").getAsJsonObject();
-        int srcPort = tcpHeader.get("srcPort").getAsInt();
-        return srcPort;
+    private int getSrcPort(JsonObject segment){//TODO test
+        if(segment.has("tcpHeader")){
+            return segment.get("tcpHeader").getAsJsonObject().get("srcPort").getAsInt();
+        }
+        if(segment.has("udpHeader")){
+            return segment.get("udpHeader").getAsJsonObject().get("srcPort").getAsInt();
+        }
+
+        return -1;
     }
 
     /**
@@ -764,14 +769,14 @@ public class Preprocessor {
     private boolean filter(String stringFlow){
         JsonElement jsonElement =  JsonParser.parseString(stringFlow);
 
-        // 1) Json format
+        /* Json format */
         if(!jsonElement.isJsonObject()){
             return false;
         }
 
-        // 2) non-udp
+        /* non-prot */
         JsonObject jsonObject = jsonElement.getAsJsonObject();
-        if(!jsonObject.has("prot") || jsonObject.get("prot").getAsInt()!=1){
+        if(!jsonObject.has("prot")){
             return false;
         }
 
