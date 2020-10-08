@@ -1,10 +1,13 @@
 package com.ditecting.attackclassification.dataprocess;
 
+import lombok.Builder;
+
+@Builder
 public class ICSADData {
     /* TCP/IP*/
     private String src_addr;
     private String dst_addr;
-    private String prot_type;
+    private int prot_type; //1:tcp, 2:udp
     private int dst_port;
     /*Packets*/
     private int src_num_packet;
@@ -30,17 +33,16 @@ public class ICSADData {
     private double dst_time_max_packet;
     private double dst_time_mean_packet;
     private double dst_time_stddev_packet;
-    private int data_class;
     /* ICS */
-    private int read_times;
-    private int read_num_location;
-    private int read_length_location;
-    private int write_times;
-    private int write_num_location;
-    private int write_length_location;
+    private int read_times; // the times of reading operation, default value: 0
+    private int read_num_location; // the number of read locations, default value: 0
+    private int read_length_location; // the total length of read locations, default value: 0
+    private int write_times; // the times of writing operation, default value: 0
+    private int write_num_location; // the number of written locations, default value: 0
+    private int write_length_location; // the total length of written locations, default value: 0
+    private int data_class;
 
-
-    public String[] toStrings (){//TODO test
+    public String[] toStrings (){
         String[] features = new String[31];
         features[0] = src_addr + "";
         features[1] = dst_addr + "";

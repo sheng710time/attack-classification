@@ -128,6 +128,8 @@ public class LOF_AD {
         lnn.setInstances(trainingData);
         int nnFactor = 2;
         double totalKnnDistance = 0;
+        double minKnnDistance = Double.MAX_VALUE;
+        double maxKnnDistance = Double.MIN_VALUE;
         for(int a=0; a<innerTrainingData.size(); a++){
             Instances instances = lnn.kNearestNeighbours(innerTrainingData.get(a), (KNN+1) * nnFactor);
             double[] distances = lnn.getDistances();
@@ -137,6 +139,13 @@ public class LOF_AD {
             }
             knnDistances[a] = distances[indexOfKDistanceForK];
             totalKnnDistance += distances[indexOfKDistanceForK];
+            System.out.println(distances[indexOfKDistanceForK]);
+            if(minKnnDistance > distances[indexOfKDistanceForK]){
+                minKnnDistance = distances[indexOfKDistanceForK];
+            }
+            if(maxKnnDistance < distances[indexOfKDistanceForK]){
+                maxKnnDistance = distances[indexOfKDistanceForK];
+            }
         }
 
         double avgKnnDistance = totalKnnDistance / innerTrainingData.size();
@@ -144,6 +153,8 @@ public class LOF_AD {
         System.out.println("innerNum: " + innerTrainingData.size());
         System.out.println("outerNum: " + outlierTrainingData.size());
         System.out.println("avgKnnDistance: " + avgKnnDistance);
+        System.out.println("minKnnDistance: " + minKnnDistance);
+        System.out.println("maxKnnDistance: " + maxKnnDistance);
         return avgKnnDistance;
     }
 

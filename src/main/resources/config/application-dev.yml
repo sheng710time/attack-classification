@@ -14,11 +14,11 @@ honeyeye:
       filePath: "C:\\Users\\18809\\Desktop\\Honeyeye A Network Traffic Collection Framework for Distributed Honeynets of Industrial Control Systems\\experiment\\expD\\U_testPcap_5s_1.pcap"
   listener:
     transmittingGrain: 0 # 0:rawPacket, 1:packet, 2:flow, 3:session
-    transmittingTimeout: 10  # in [s]
+    transmittingTimeout: 1  # in [s]
     outputtingGrain: 2 # 0:rawPacket, 1:packet, 2:flow, 3:session
-    outputtingTimeout: 10  # in [s]
+    outputtingTimeout: 1  # in [s]
     pluginGrain: 2 # 0:rawPacket, 1:packet, 2:flow, 3:session
-    pluginTimeout: 0.5  # in [s]
+    pluginTimeout: 1  # in [s]
     meetingTimeout: 100000000000000000  # in [s]
     segmentMax: 10000
     transmittingListener:

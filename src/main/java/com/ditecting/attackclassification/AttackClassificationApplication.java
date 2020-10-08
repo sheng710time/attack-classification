@@ -6,6 +6,8 @@ import com.ditecting.attackclassification.anomalyclassification.ModelIO;
 import com.ditecting.attackclassification.anomalyclassification.Sample;
 import com.ditecting.attackclassification.anomalydetection.LOF_AD;
 import com.ditecting.attackclassification.anomalydetection.SAE_AD;
+import com.ditecting.attackclassification.dataprocess.ExtractorADData;
+import com.ditecting.attackclassification.dataprocess.ExtractorICSADData;
 import com.ditecting.attackclassification.dataprocess.FileLoader;
 import com.ditecting.attackclassification.dataprocess.Preprocessor;
 import org.mybatis.spring.annotation.MapperScan;
@@ -27,6 +29,12 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 
     @Autowired
     private Preprocessor preprocessor;
+
+    @Autowired
+    private ExtractorADData extractorADData;
+
+    @Autowired
+    private ExtractorICSADData extractorICSADData;
 
     @Autowired
     private FileLoader loader;
@@ -106,14 +114,14 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 
     public void callSAE_AD () throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        int first = 20;
-        int second = 8;
+        int first = 90;
+        int second = 40;
         int third = 2;
         SAE_AD saeAD = new SAE_AD(first, second, third, 0);
-        String trainFilePath = desktopPath + "\\test3\\dealed\\run1_6rtu(1)_ef_norm.csv";
-        String encodeFilePath = desktopPath + "\\test3\\dealed\\run1_6rtu(1) && attacks.csv";
-        String outPathEncode = desktopPath + "\\test3\\dealed\\run1_6rtu(1) && attacks"+ "_encode_" + second + "-" +third +".csv";
-        int labelIndex = 20;
+        String trainFilePath = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm.csv";
+        String encodeFilePath = desktopPath + "\\test2\\dealed\\run1_6rtu(1) && attacks.csv";
+        String outPathEncode = desktopPath + "\\test2\\dealed\\run1_6rtu(1) && attacks"+ "_encode_" + second + "-" +third +".csv";
+        int labelIndex = 90;
         int numClasses = 1;
         int batchSizeTraining = 100;
         int batchSizeTesting = 100;
@@ -129,17 +137,17 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
         /* Build LOF model */
         LOF_AD lofAD = new LOF_AD(0);
-        String trainFilePath = desktopPath + "\\test3\\dealed\\run1_6rtu(1)_ef_norm.csv";
-        int KNN = 50;
+        String trainFilePath = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm.csv";
+        int KNN = 20;
         int classIndex = 0;
         boolean includeHeader = true;
         String[] options = new String[]{"-R", "first-last"};
         lofAD.train(trainFilePath, KNN, KNN, classIndex, includeHeader, options);
 
         /* Evaluate training data */
-        double cutOffValue = 1.1;
+        double cutOffValue = 3;
         lofAD.evaluateTrainingData(cutOffValue, KNN, true);
-        String outPathOutliers = desktopPath + "\\test3\\dealed\\run1_6rtu(1)_ef_norm_outliers_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
+        String outPathOutliers = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm_outliers_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
         lofAD.outputOutliers(outPathOutliers);
 
         /* Save LOF model */
@@ -149,10 +157,10 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 //        LOF lof = LOF_AD.readLOF(modelPath);
 
         /* Test testing data*/
-        String testFilePath = desktopPath + "\\test3\\dealed\\attacks_ef_norm.csv";
+        String testFilePath = desktopPath + "\\test2\\dealed\\attacks_ef_oh_norm.csv";
         lofAD.test(testFilePath, classIndex, includeHeader, options);
         lofAD.evaluate(cutOffValue);
-        String outPathResult = desktopPath + "\\test3\\dealed\\attacks_ef_norm_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
+        String outPathResult = desktopPath + "\\test2\\dealed\\attacks_ef_oh_norm_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
         lofAD.output(outPathResult, cutOffValue);
 
 //        Instances predictedData = LOF_AD.test(lof, testFilePath, classIndex, includeHeader, options);
@@ -164,17 +172,18 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         /* deal with raw data*/
         /* has label file
         String filename = "send_a_fake_command_modbus_6RTU_with_operate";
-        String inPath = desktopPath + "\\test3\\"+ filename +".pcap";
-        String inPathLabel = desktopPath + "\\test3\\"+ filename +"_labeled.csv";
-        String outPath = desktopPath + "\\test3\\"+ filename +".csv";
-        String outPathNo = desktopPath + "\\test3\\"+ filename +"_no.csv";
-        preprocessor.extract(inPath, inPathLabel, outPath, outPathNo);*/
+        String inPath = desktopPath + "\\test1_new\\"+ filename +".pcap";
+        String inPathLabel = desktopPath + "\\test1_new\\"+ filename +"_labeled.csv";
+        String outPath = desktopPath + "\\test1_new\\"+ filename +".csv";
+        String outPathNo = desktopPath + "\\test1_new\\"+ filename +"_no.csv";
+        extractorADData.extract(inPath, inPathLabel, outPath, outPathNo);*/
         /* has no label file
-        String inPath = desktopPath + "\\test3\\testqq3.pcap";
-        String outPath = desktopPath + "\\test3\\testqq3.csv";
-        String outPathNo = desktopPath + "\\test3\\testqq3_no.csv";
+        String inPath = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operate.pcap";
+        String outPath = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operateqqq.csv";
+        String outPathNo = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operate_noqqq.csv";
         int data_class = 0;
-        preprocessor.extract(inPath, outPath, outPathNo, data_class);*/
+//        extractorADData.extract(inPath, outPath, outPathNo, data_class);
+        extractorICSADData.extract(inPath, outPath, outPathNo, data_class);*/
 
         /* Generate label file
         String inPathLabel = desktopPath + "\\test2\\run1_6rtu(1)_labeled.csv";
@@ -194,14 +203,14 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 
         /* Transform SCADA Data
         List<String> inPathList = new ArrayList<>();
-        String inPath1 = desktopPath + "\\test3\\CnC_uploading_exe_modbus_6RTU_with_operate";
-        String inPath2 = desktopPath + "\\test3\\exploit_ms08_netapi_modbus_6RTU_with_operate";
-        String inPath3 = desktopPath + "\\test3\\Modbus_polling_only_6RTU";
-        String inPath4 = desktopPath + "\\test3\\run1_6rtu(1)";
-        String inPath5 = desktopPath + "\\test3\\send_a_fake_command_modbus_6RTU_with_operate";
-        String inPath6 = desktopPath + "\\test3\\channel_4d_12s(2)";
-        String inPath7 = desktopPath + "\\test3\\characterization_modbus_6RTU_with_operate";
-        String inPath8 = desktopPath + "\\test3\\moving_two_files_modbus_6RTU";
+        String inPath1 = desktopPath + "\\test1_new\\CnC_uploading_exe_modbus_6RTU_with_operate";
+        String inPath2 = desktopPath + "\\test1_new\\exploit_ms08_netapi_modbus_6RTU_with_operate";
+        String inPath3 = desktopPath + "\\test1_new\\Modbus_polling_only_6RTU";
+        String inPath4 = desktopPath + "\\test1_new\\run1_6rtu(1)";
+        String inPath5 = desktopPath + "\\test1_new\\send_a_fake_command_modbus_6RTU_with_operate";
+        String inPath6 = desktopPath + "\\test1_new\\channel_4d_12s(2)";
+        String inPath7 = desktopPath + "\\test1_new\\characterization_modbus_6RTU_with_operate";
+        String inPath8 = desktopPath + "\\test1_new\\moving_two_files_modbus_6RTU";
         inPathList.add(inPath1);
         inPathList.add(inPath2);
         inPathList.add(inPath3);
@@ -214,16 +223,16 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         boolean includeHeader = true;
         preprocessor.transformSCADAData(inPathList, classIndex, includeHeader);*/
 
-        /* Normalize input data
+        /* Normalize input data*/
         List<String> inPathList = new ArrayList<>();
-        String inPath1 = desktopPath + "\\test3\\CnC_uploading_exe_modbus_6RTU_with_operate_ef";
-        String inPath2 = desktopPath + "\\test3\\exploit_ms08_netapi_modbus_6RTU_with_operate_ef";
-        String inPath3 = desktopPath + "\\test3\\Modbus_polling_only_6RTU_ef";
-        String inPath4 = desktopPath + "\\test3\\run1_6rtu(1)_ef";
-        String inPath5 = desktopPath + "\\test3\\send_a_fake_command_modbus_6RTU_with_operate_ef";
-        String inPath6 = desktopPath + "\\test3\\channel_4d_12s(2)_ef";
-        String inPath7 = desktopPath + "\\test3\\characterization_modbus_6RTU_with_operate_ef";
-        String inPath8 = desktopPath + "\\test3\\moving_two_files_modbus_6RTU_ef";
+        String inPath1 = desktopPath + "\\test2\\CnC_uploading_exe_modbus_6RTU_with_operate_ef_oh";
+        String inPath2 = desktopPath + "\\test2\\exploit_ms08_netapi_modbus_6RTU_with_operate_ef_oh";
+        String inPath3 = desktopPath + "\\test2\\Modbus_polling_only_6RTU_ef_oh";
+        String inPath4 = desktopPath + "\\test2\\run1_6rtu(1)_ef_oh";
+        String inPath5 = desktopPath + "\\test2\\send_a_fake_command_modbus_6RTU_with_operate_ef_oh";
+        String inPath6 = desktopPath + "\\test2\\channel_4d_12s(2)_ef_oh";
+        String inPath7 = desktopPath + "\\test2\\characterization_modbus_6RTU_with_operate_ef_oh";
+        String inPath8 = desktopPath + "\\test2\\moving_two_files_modbus_6RTU_ef_oh";
         inPathList.add(inPath1);
         inPathList.add(inPath2);
         inPathList.add(inPath3);
@@ -235,7 +244,7 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         int classIndex = 0;
         boolean includeHeader = true;
         String[] options = new String[]{"-R", "first-last"};
-        preprocessor.normalize(inPathList, false, true, classIndex, includeHeader, options);*/
+        preprocessor.normalize(inPathList, false, true, classIndex, includeHeader, options);
 
         /* Sample NSLKDD
         String inPath = desktopPath + "\\test6\\KDDTrain+_edited_ef_ed_oh_norm_normal";
