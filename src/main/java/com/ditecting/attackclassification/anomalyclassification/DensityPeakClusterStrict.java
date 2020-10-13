@@ -645,7 +645,6 @@ public class DensityPeakClusterStrict implements Serializable{
                 q.poll();
             }
         }
-
         return q.peek();
     }
 

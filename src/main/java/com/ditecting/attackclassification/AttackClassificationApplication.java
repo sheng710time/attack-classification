@@ -16,6 +16,7 @@ import org.springframework.boot.Banner;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import weka.filters.unsupervised.attribute.LOF;
 
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
@@ -58,29 +59,32 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         /* LOF */
         callLOF_AD ();
 
-        /* DPC */
+        /* DPCS */
 //        callDPCS();
+
+        /* DPCSD */
+//        callDPCSD();
 
         System.out.println("");
     }
 
     public void callDPCS () throws IOException{
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        String trainFilePathLabel = desktopPath + "\\test5\\KDDTrain+_edited_ef_ed_oh_norm_part.csv";
+        String trainFilePathLabel = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm.csv";
         int trainIndex = -1;
         String trainFilePath = null;
-        int labelIndex = 122;
-        int KNC = 50;
-        double percentage = 0.015;
+        int labelIndex = 90;
+        int KNC = 10;
+        double percentage = 0.018;
         DensityPeakClusterStrict dpcs = new DensityPeakClusterStrict();
         dpcs.train(trainFilePathLabel, trainFilePath, labelIndex, trainIndex, percentage);
 //        String modelFilePath = "C:\\Users\\18809\\Desktop\\test5\\DPCS.model";
 //        ModelIO.outputModel(modelFilePath, DPCS);
 //        DensityPeakClusterStrict DPCS = (DensityPeakClusterStrict) ModelIO.inputModel(modelFilePath);
-        String testsFilePath = desktopPath + "\\test5\\KDDTrain+_edited_ef_ed_oh_norm_part.csv";
+        String testsFilePath = desktopPath + "\\test2\\dealed\\moving_two_files_modbus_6RTU_ef_oh_norm_result_lof_KNN-20_CV-3.0_outlier.csv";
         dpcs.test(testsFilePath, labelIndex, KNC);
         dpcs.evaluate();
-//        String outPathResult = "C:\\Users\\18809\\Desktop\\test5\\KDDTrain+_edited_ef_ed_oh_norm_part_result_dpc.csv";
+//        String outPathResult = desktopPath + "\\test2\\dealed\\moving_two_files_modbus_6RTU_ef_oh_norm_result_lof_KNN-20_CV-3.0_outlier_result_dpcs.csv";
 //        dpcs.output(outPathResult);
 
         System.out.println("KNC: " + KNC);
@@ -89,38 +93,39 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 
     public void callDPCSD () throws IOException, InterruptedException {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        String trainFilePathLabel = desktopPath + "\\test5\\KDDTrain+_edited_ef_ed_oh_norm.csv";
+        String trainFilePathLabel = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm_encode_50-10.csv";
         int trainIndex = -1;
         String trainFilePath = null;
-        int labelIndex = 122;
-        int KNC = 50;
-        double percentage = 0.009;
+        int labelIndex = 10;
+        int KNC = 10;
+        double percentage = 0.08;
         int batchSize = 1000;
         DensityPeakClusterStrictDistributed dpcsd = new DensityPeakClusterStrictDistributed();
         dpcsd.init(trainFilePathLabel, trainFilePath, labelIndex, trainIndex, batchSize, percentage);
         dpcsd.train();
-        String modelFilePath = desktopPath + "\\test5\\dhcsd_"+dpcsd.getInputSamples().size()+"_"+batchSize+"_"+dpcsd.getDc()+".model";
-        ModelIO.outputModel(modelFilePath, dpcsd);
+//        String modelFilePath = desktopPath + "\\test2\\dealed\\dhcsd_"+dpcsd.getInputSamples().size()+"_"+batchSize+"_"+dpcsd.getDc()+".model";
+//        ModelIO.outputModel(modelFilePath, dpcsd);
 //        DensityPeakClusterStrictDistributed dhcsd = (DensityPeakClusterStrictDistributed) ModelIO.inputModel(modelFilePath);
-        String testsFilePath = desktopPath + "\\test5\\KDDTest+_edited_ef_ed_oh_norm.csv";
-        List<Sample> testingSamples = dpcsd.test(testsFilePath, labelIndex, KNC);
+        String testsFilePath = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm_encode_50-10_result_lof_KNN-20_CV-2.5_outlier.csv";
+        List<Sample> testingSamples = dpcsd.predict(testsFilePath, labelIndex, KNC);
+//        List<Sample> testingSamples = dpcsd.test(testsFilePath, labelIndex, KNC);
         dpcsd.evaluate(testingSamples);
-        String outPathResult = desktopPath + "\\test5\\KDDTest+_edited_ef_ed_oh_norm_result_dhcsd_3000.csv";
+        String outPathResult = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm_encode_50-10_result_lof_KNN-20_CV-2.5_outlier_result_dpcsd.csv";
         dpcsd.output(testingSamples, outPathResult);
 
-        System.out.println("KNC: " + KNC);
-        System.out.println("percentage: " + percentage);
+//        System.out.println("KNC: " + KNC);
+//        System.out.println("percentage: " + percentage);
     }
 
     public void callSAE_AD () throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
         int first = 90;
-        int second = 40;
-        int third = 2;
+        int second = 50;
+        int third = 10;
         SAE_AD saeAD = new SAE_AD(first, second, third, 0);
         String trainFilePath = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm.csv";
-        String encodeFilePath = desktopPath + "\\test2\\dealed\\run1_6rtu(1) && attacks.csv";
-        String outPathEncode = desktopPath + "\\test2\\dealed\\run1_6rtu(1) && attacks"+ "_encode_" + second + "-" +third +".csv";
+        String encodeFilePath = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm.csv";
+        String outPathEncode = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm"+ "_encode_" + second + "-" +third +".csv";
         int labelIndex = 90;
         int numClasses = 1;
         int batchSizeTraining = 100;
@@ -135,33 +140,37 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 
     public void callLOF_AD () throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        /* Build LOF model */
-        LOF_AD lofAD = new LOF_AD(0);
-        String trainFilePath = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm.csv";
+
         int KNN = 20;
         int classIndex = 0;
         boolean includeHeader = true;
         String[] options = new String[]{"-R", "first-last"};
+        double cutOffValue = 5;
+        /* Build LOF model*/
+        LOF_AD lofAD = new LOF_AD(0);
+        String trainFilePath = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm.csv";
         lofAD.train(trainFilePath, KNN, KNN, classIndex, includeHeader, options);
 
-        /* Evaluate training data */
-        double cutOffValue = 3;
+        /* Evaluate training data*/
         lofAD.evaluateTrainingData(cutOffValue, KNN, true);
-        String outPathOutliers = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm_outliers_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
-        lofAD.outputOutliers(outPathOutliers);
+//        String outPathOutliers = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm_encode_50-10_outliers_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
+//        lofAD.outputOutliers(outPathOutliers);
 
-        /* Save LOF model */
-//        String modelPath = desktopPath + "\\test2\\LOF.model";
-//        lofAD.saveLOF(modelPath);
-        /* Read LOF model */
-//        LOF lof = LOF_AD.readLOF(modelPath);
+//        String modelPath = desktopPath + "\\test2\\dealed\\LOF_KNN-"+ KNN +"_CV-"+ cutOffValue +".model";
+        /* Save LOF model
+        lofAD.saveLOF(modelPath);*/
+        /* Read LOF model
+        LOF lof = LOF_AD.readLOF(modelPath);*/
 
-        /* Test testing data*/
-        String testFilePath = desktopPath + "\\test2\\dealed\\attacks_ef_oh_norm.csv";
+        /* Test testing data
+        String testFilePath = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm_encode_50-10.csv";
         lofAD.test(testFilePath, classIndex, includeHeader, options);
         lofAD.evaluate(cutOffValue);
-        String outPathResult = desktopPath + "\\test2\\dealed\\attacks_ef_oh_norm_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
-        lofAD.output(outPathResult, cutOffValue);
+        String outPathResult = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm_encode_50-10_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
+        String outPathOutlier = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm_encode_50-10_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier.csv";
+        String outPathOutlierNo = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm_encode_50-10_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier_no.csv";
+        int mode = 2;
+        lofAD.output(outPathResult, outPathOutlier, outPathOutlierNo, cutOffValue, mode);*/
 
 //        Instances predictedData = LOF_AD.test(lof, testFilePath, classIndex, includeHeader, options);
 //        LOF_AD.evaluate(predictedData, testFilePathNo, testFilePathLabel, cutOffValue);

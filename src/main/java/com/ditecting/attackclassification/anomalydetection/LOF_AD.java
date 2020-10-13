@@ -1,5 +1,6 @@
 package com.ditecting.attackclassification.anomalydetection;
 
+import com.ditecting.attackclassification.anomalyclassification.MathMethod;
 import com.ditecting.attackclassification.dataprocess.CSVUtil;
 import com.ditecting.attackclassification.dataprocess.FileLoader;
 import lombok.extern.slf4j.Slf4j;
@@ -97,7 +98,7 @@ public class LOF_AD {
         }
     }
 
-    public double evaluateTrainingData (double cutOffValue, int KNN, boolean including) throws Exception {
+    public void evaluateTrainingData (double cutOffValue, int KNN, boolean including) throws Exception {
         if(!isTrained){
             throw new IllegalStateException("Lof has not been trained.");
         }
@@ -117,45 +118,58 @@ public class LOF_AD {
             }
         }
 
+        System.out.println("innerNum: " + innerTrainingData.size());
+        System.out.println("outerNum: " + outlierTrainingData.size());
         /* Calculate KNN distances */
         predictedData.deleteAttributeAt(predictedData.numAttributes()-1);
-        double[] knnDistances = new double[innerTrainingData.size()];
+//        estimateKnnDistances(cutOffValue, KNN, innerTrainingData);
+        estimateKnnDistances(cutOffValue, KNN, outlierTrainingData);
+    }
 
+    private void estimateKnnDistances (double cutOffValue, int KNN, List<Instance> estimatingData) throws Exception {
         EuclideanDistanceOverZero edoz = new EuclideanDistanceOverZero();
         edoz.setDontNormalize(true);
         LinearNNSearch lnn = new LinearNNSearch();
         lnn.setDistanceFunction(edoz);
         lnn.setInstances(trainingData);
+        double[] knnDistances = new double[estimatingData.size()];
         int nnFactor = 2;
         double totalKnnDistance = 0;
+        double totalKnnDistanceWithoutEps = 0;
+        List<Double> knnDistanceWithoutEpsList = new ArrayList<>();
+        int countWithoutEps = 0;
         double minKnnDistance = Double.MAX_VALUE;
         double maxKnnDistance = Double.MIN_VALUE;
-        for(int a=0; a<innerTrainingData.size(); a++){
-            Instances instances = lnn.kNearestNeighbours(innerTrainingData.get(a), (KNN+1) * nnFactor);
+        for(int a=0; a<estimatingData.size(); a++){
+            Instances instances = lnn.kNearestNeighbours(estimatingData.get(a), (KNN+1) * nnFactor);
             double[] distances = lnn.getDistances();
-            int indexOfKDistanceForK;
-            for(indexOfKDistanceForK = KNN - 1; indexOfKDistanceForK < distances.length - 1 && distances[indexOfKDistanceForK] == distances[indexOfKDistanceForK + 1]; ++indexOfKDistanceForK) {
-                ;
+            double knnDistance = distances[KNN-1];//TODO test
+            System.out.println(knnDistance);
+            knnDistances[a] = knnDistance;
+            totalKnnDistance += knnDistance;
+            if(knnDistance > 1e-8){
+                totalKnnDistanceWithoutEps += knnDistance;
+                knnDistanceWithoutEpsList.add(knnDistance);
+                countWithoutEps++;
             }
-            knnDistances[a] = distances[indexOfKDistanceForK];
-            totalKnnDistance += distances[indexOfKDistanceForK];
-            System.out.println(distances[indexOfKDistanceForK]);
-            if(minKnnDistance > distances[indexOfKDistanceForK]){
-                minKnnDistance = distances[indexOfKDistanceForK];
+            if(minKnnDistance > knnDistance){
+                minKnnDistance = knnDistance;
             }
-            if(maxKnnDistance < distances[indexOfKDistanceForK]){
-                maxKnnDistance = distances[indexOfKDistanceForK];
+            if(maxKnnDistance < knnDistance){
+                maxKnnDistance = knnDistance;
             }
         }
 
-        double avgKnnDistance = totalKnnDistance / innerTrainingData.size();
+        double avgKnnDistance = totalKnnDistance / estimatingData.size();
+        double avgKnnDistanceWithoutEps = totalKnnDistanceWithoutEps / countWithoutEps;
+        double avgKnnDistanceWithoutEpsOpt = MathMethod.minDisSquare(knnDistanceWithoutEpsList, 1000);
         System.out.println("cutOffValue: " + cutOffValue);
-        System.out.println("innerNum: " + innerTrainingData.size());
-        System.out.println("outerNum: " + outlierTrainingData.size());
+        System.out.println("dataNum: " + estimatingData.size());
         System.out.println("avgKnnDistance: " + avgKnnDistance);
+        System.out.println("avgKnnDistanceWithoutEps: " + avgKnnDistanceWithoutEps);
+        System.out.println("avgKnnDistanceWithoutEpsOpt: " + avgKnnDistanceWithoutEpsOpt);
         System.out.println("minKnnDistance: " + minKnnDistance);
         System.out.println("maxKnnDistance: " + maxKnnDistance);
-        return avgKnnDistance;
     }
 
     public void outputOutliers (String outPathOutliers) {
@@ -249,13 +263,23 @@ public class LOF_AD {
         return accuracy;
     }
 
-    public void output (String outPathResult, double cutOffValue){
+    /**
+     *
+     * @param outPathResult
+     * @param cutOffValue
+     * @param mode 0:resultsList, 1:outliersList, 2:resultsList && outliersList
+     */
+    public void output (String outPathResult, String outPathOutlier, String outPathOutlierNo, double cutOffValue, int mode){
         if(!isTested){
             throw new IllegalStateException("No testing data has been predicted.");
         }
 
         List<String[]> resultsList = new ArrayList<>();
         resultsList.add(new String[]{"flowNo", "data_class", "predicted_class", "lof_score"});
+        List<Instance> outlierList = new ArrayList<>();
+        List<String[]> outlierNoList = new ArrayList<>();
+        outlierNoList.add(new String[]{"outlierNo", "flowNo"});
+        int outlierCount = 0;
         for( int a=0; a<predictedData.size(); a++){
             int realLabel = (int) predictedData.get(a).value(predictedData.classIndex());
             double lof = predictedData.get(a).value(predictedData.numAttributes()-1);
@@ -263,8 +287,38 @@ public class LOF_AD {
             int preLabel = compareCutOffValue(true, lofFormatted, cutOffValue)? 0:1;
             String[] result = new String[]{a+"", realLabel+"", preLabel+"", predictedData.get(a).value(predictedData.numAttributes()-1)+""};
             resultsList.add(result);
+            if(preLabel == 1){
+                outlierList.add(predictedData.get(a));
+                outlierNoList.add(new String[]{""+outlierCount++, a+""});
+            }
         }
-        CSVUtil.write(outPathResult, resultsList);
+
+        if(mode==0 || mode==2){
+            CSVUtil.write(outPathResult, resultsList);
+        }
+
+        /* Output data to csv file */
+        predictedData.deleteAttributeAt(predictedData.numAttributes()-1);
+        if(outlierList.size()>0 && mode>0){
+            int numAttributes = outlierList.get(0).numAttributes();
+            String[] header = new String[numAttributes];
+            for(int a=0; a<numAttributes; a++){
+                header[a] = "attr" + (a+1);
+            }
+
+            List<String[]> strDataList = new ArrayList<>();
+            strDataList.add(header);
+            for(int b=0; b<outlierList.size(); b++) {
+                Instance instance = outlierList.get(b);
+                String[] data = new String[numAttributes];
+                for (int d = 0; d < numAttributes; d++) {
+                    data[d] = instance.toDoubleArray()[d] + "";
+                }
+                strDataList.add(data);
+            }
+            CSVUtil.write(outPathOutlier, strDataList);
+            CSVUtil.write(outPathOutlierNo, outlierNoList);
+        }
     }
 
     /**

@@ -23,6 +23,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
     private transient int batchSize;
     private double dc;
     private List<Sample> inputSamples;
+    private int inputSampleSize;
     private transient List<List<Sample>> samplesList;
     private transient List<DensityPeakClusterStrict> dpcsList;
     private transient Map<Integer, Integer> sampleToClusterMap;// <sampleIndex, clusterIndex>
@@ -46,6 +47,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
             trainingReader.readData(trainFilePath,trainIndex);
             inputSamples.addAll(trainingReader.getSamples());
         }
+        inputSampleSize = inputSamples.size();
         /* Split data into batches */
         samplesList = new ArrayList<>();
         int batchIndex = 0;
@@ -74,8 +76,8 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         for(DensityPeakClusterStrict dpcs : dpcsList){
             dcTotal += dpcs.getDc();
         }
-        this.dc = dcTotal/dpcsList.size();
-//        this.dc = 0.20459793551049693;
+//        this.dc = dcTotal/dpcsList.size();
+        this.dc = 0.2;
         log.info("Get dc:" + dc);
         for(DensityPeakClusterStrict dpcs : dpcsList){
             dpcs.setDc(dc);
@@ -277,7 +279,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
      * @param cutOffValue
      * @return
      */
-    public int findNearestCenter (Sample sample, double cutOffValue, int KNC) {
+    public Pair<Integer, Double> findNearestCenter (Sample sample, double cutOffValue, int KNC) {
         List<Pair<Integer, Double>> distanceList = findPossibleNearestCenters(sample, cutOffValue, KNC);
 
         double currentMinDistance = Double.MAX_VALUE;
@@ -290,7 +292,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
             }
         }
 
-        return centerId;
+        return new ImmutablePair<>(centerId, currentMinDistance);
     }
 
     /**
@@ -350,7 +352,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         List<Sample> testingSamples = testingReader.getSamples();
         for(int a=0; a<testingSamples.size(); a++){
             Sample sample = testingSamples.get(a);
-            int centerId = findNearestCenter(sample, dc, KNC);
+            int centerId = findNearestCenter(sample, dc, KNC).getKey();
             if(centerId != -1){
                 sample.setPredictLabel(clustersLabels.get(centerId)+"");
             } else {// The sample doesn't belong to any existing classes, and create a new cluster for it
@@ -359,6 +361,138 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         }
         log.info("End to test.");
         return testingSamples;
+    }
+
+    public List<Sample> predict (String testFilePath, int testLabelIndex, int KNC) throws IOException {
+        log.info("Start to predict.");
+        int currentLabel = 1;
+        DataReader testingReader = new DataReader();
+        testingReader.readData(testFilePath,testLabelIndex);
+        List<Sample> testingSamples = testingReader.getSamples();
+        for(int a=0; a<testingSamples.size(); a++){
+            Sample sample = testingSamples.get(a);
+            Pair<Integer, Double> nearestCenter = findNearestCenter(sample, dc, KNC);
+            int centerId = nearestCenter.getKey();
+            if(centerId != -1){
+                sample.setPredictLabel(clustersLabels.get(centerId)+"");
+                if(nearestCenter.getValue() > 0){// update dpcsd with a new sample
+                    update(sample, centerId);
+                }
+            } else {// The sample doesn't belong to any existing classes, and then create a new cluster for it
+                sample.setPredictLabel(currentLabel+"");
+                createNewCluster(sample, currentLabel++);
+            }
+        }
+        log.info("End to predict.");
+        return testingSamples;
+    }
+
+    /**
+     * create and add a new cluster to dpcsd
+     * @param sample
+     * @param label
+     */
+    private void createNewCluster (Sample sample, int label){
+        log.info("Create a new cluster.");
+        inputSamples.add(sample);
+        List<Integer> elementList = new ArrayList<>();
+        elementList.add(inputSamples.size()-1);
+        clusterToSampleMap.put(elementList.get(0), elementList);
+        clustersLabels.put(elementList.get(0), label);
+        clusterCenterMap.put(elementList.get(0), sample);
+    }
+
+    /**
+     * update the cluster with centerId and the whole model with the sample
+     * @param sample
+     * @param centerId
+     */
+    private void update(Sample sample, int centerId) {
+        log.info("Update the model.");
+        inputSamples.add(sample);
+        /*update the cluster with centerId*/
+        List<Integer> cluster = clusterToSampleMap.get(centerId);
+        cluster.add(inputSamples.size()-1);
+        int numColumns = inputSamples.get(0).getAttributes().length;
+        double[] totalValues = new double[numColumns];
+        for(int a=0; a<cluster.size(); a++){
+            for(int b=0; b<numColumns; b++){
+                totalValues[b] += inputSamples.get(cluster.get(a)).getAttributes()[b];
+            }
+        }
+        double[] attrs = new double[numColumns];
+        for(int c=0; c<numColumns; c++){
+            attrs[c] = totalValues[c]/cluster.size();
+        }
+        Sample newCenter = new Sample(attrs, clustersLabels.get(centerId)+"");
+        clusterCenterMap.put(centerId, newCenter);
+
+        /*update the whole model*/
+        int numCa = clusterToSampleMap.get(centerId).size();
+        List<Integer> nearCenterIds = new ArrayList<>();
+        /*find near clusters*/
+        for(Map.Entry<Integer, Sample> entry : clusterCenterMap.entrySet()){
+            if(entry.getKey() == centerId){
+                continue;
+            }
+            Sample cb = entry.getValue();
+            int numCb = clusterToSampleMap.get(entry.getKey()).size();
+            double cutoffValue = (double)(numCa+numCb)/2*dc;
+            if(twoSampleDistance(newCenter,cb) <= cutoffValue && nearCenters(centerId, entry.getKey(), clusterToSampleMap, dc)){
+                nearCenterIds.add(entry.getKey());
+            }
+        }
+        if(nearCenterIds.size() == 0){
+            return;
+        }
+        /*update clusterToSampleMap*/
+        for(Integer id : nearCenterIds){
+            clusterToSampleMap.get(centerId).addAll(clusterToSampleMap.get(id));
+            clusterToSampleMap.remove(id);
+            clustersLabels.remove(id);
+            clusterCenterMap.remove(id);
+        }
+        /*update clustersLabels*/
+        Map<Integer, Integer> votes = new HashMap<>();
+        for(int element : clusterToSampleMap.get(centerId)){
+            int vote;
+            if(element < inputSampleSize){
+                vote = (int) Double.parseDouble(inputSamples.get(element).getLabel());
+            }else{
+                vote = (int) Double.parseDouble(inputSamples.get(element).getPredictLabel());
+            }
+            if(votes.containsKey(vote)){
+                votes.put(vote, votes.get(vote)+1);
+            }else {
+                votes.put(vote, 1);
+            }
+        }
+        int data_class = -1;
+        int maxCount = Integer.MIN_VALUE;
+        for(Map.Entry<Integer, Integer> vote : votes.entrySet()){
+            if(vote.getKey() != -1){
+                if(vote.getValue() > maxCount){
+                    maxCount = vote.getValue();
+                    data_class = vote.getKey();
+                }
+            }
+        }
+        clustersLabels.put(centerId, data_class);
+        /*update clusterCenterMap*/
+        List<Integer> clusterEx = clusterToSampleMap.get(centerId);
+        int numColumnsEx = inputSamples.get(0).getAttributes().length;
+        double[] totalValuesEx = new double[numColumnsEx];
+        for(int a=0; a<clusterEx.size(); a++){
+            for(int b=0; b<numColumnsEx; b++){
+                totalValuesEx[b] += inputSamples.get(clusterEx.get(a)).getAttributes()[b];
+            }
+        }
+        double[] attrsEx = new double[numColumnsEx];
+        for(int c=0; c<numColumnsEx; c++){
+            attrsEx[c] = totalValuesEx[c]/clusterEx.size();
+        }
+        Sample newCenterEx = new Sample(attrsEx, clustersLabels.get(centerId)+"");
+        clusterCenterMap.put(centerId, newCenterEx);
     }
 
     public void evaluate (List<Sample> testingSamples) {
