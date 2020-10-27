@@ -29,6 +29,37 @@ public class ExtractorICSADData {
     @Autowired
     private PluginCachePool pluginCachePool;
 
+    public void extract(List<String> stringFlowList, String outPath, String outPathNo, int data_class) throws InterruptedException {
+        //extract
+        List<List<Integer>> numbersList = new ArrayList<>();
+        List<ICSADData> icsadDataList = new ArrayList<>();
+        for(String stringFlow : stringFlowList){
+            if(filter(stringFlow)){//filter condition: Json format
+                numbersList.add(extractNumbers(stringFlow));
+                icsadDataList.add(extractICSADData(stringFlow, data_class));
+            }
+        }
+
+        //output data to csv file
+        List<String[]> strNumbersList = new ArrayList<>();
+        strNumbersList.add(new String[]{"flowNo", "packetNo"});
+        for( int a=0; a<numbersList.size(); a++){
+            for(int number : numbersList.get(a)){
+                strNumbersList.add(new String[]{a+"", number+""});
+            }
+        }
+        CSVUtil.write(outPathNo, strNumbersList);
+
+        //output data to csv file
+        List<String[]> strDataList = new ArrayList<>();
+        strDataList.add(ICSADData.getHeader());
+        for(ICSADData icsadData : icsadDataList){
+            strDataList.add(icsadData.toStrings());
+        }
+
+        CSVUtil.write(outPath, strDataList);
+    }
+
     public void extract(String inPath, String outPath, String outPathNo, int data_class) throws InterruptedException {
         //input data from PCAP file
         loadHolder.load(inPath);

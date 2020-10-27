@@ -6,11 +6,7 @@ import com.ditecting.attackclassification.anomalyclassification.ModelIO;
 import com.ditecting.attackclassification.anomalyclassification.Sample;
 import com.ditecting.attackclassification.anomalydetection.LOF_AD;
 import com.ditecting.attackclassification.anomalydetection.SAE_AD;
-import com.ditecting.attackclassification.dataprocess.ExtractorADData;
-import com.ditecting.attackclassification.dataprocess.ExtractorICSADData;
-import com.ditecting.attackclassification.dataprocess.FileLoader;
-import com.ditecting.attackclassification.dataprocess.Preprocessor;
-import org.mybatis.spring.annotation.MapperScan;
+import com.ditecting.attackclassification.dataprocess.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.Banner;
 import org.springframework.boot.CommandLineRunner;
@@ -21,11 +17,9 @@ import weka.filters.unsupervised.attribute.LOF;
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @SpringBootApplication(scanBasePackages = {"com.ditecting.*"})
-@MapperScan("com.ditecting.honeyeye.dao")
 public class AttackClassificationApplication  implements CommandLineRunner {
 
     @Autowired
@@ -40,6 +34,15 @@ public class AttackClassificationApplication  implements CommandLineRunner {
     @Autowired
     private FileLoader loader;
 
+    @Autowired
+    private SCADAData scadaData;
+
+    @Autowired
+    private ScanningToolData scanningToolData;
+
+    @Autowired
+    private HoneypotData honeypotData;
+
     public static void main(String[] args) {
         SpringApplication app = new SpringApplication(AttackClassificationApplication.class);
         app.setBannerMode(Banner.Mode.OFF);
@@ -50,14 +53,17 @@ public class AttackClassificationApplication  implements CommandLineRunner {
     public void run(String... args) throws Exception {
         System.out.println("AttackClassificationApplication !!!");
 
+        /* Extractor */
+//        callExtractor();
+
         /* Preprocessor */
-//        callPreprocessor();
+        callPreprocessor();
 
         /* SAE */
 //        callSAE_AD();
 
         /* LOF */
-        callLOF_AD ();
+//        callLOF_AD ();
 
         /* DPCS */
 //        callDPCS();
@@ -178,61 +184,18 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 
     public void callPreprocessor () throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        /* deal with raw data*/
-        /* has label file
-        String filename = "send_a_fake_command_modbus_6RTU_with_operate";
-        String inPath = desktopPath + "\\test1_new\\"+ filename +".pcap";
-        String inPathLabel = desktopPath + "\\test1_new\\"+ filename +"_labeled.csv";
-        String outPath = desktopPath + "\\test1_new\\"+ filename +".csv";
-        String outPathNo = desktopPath + "\\test1_new\\"+ filename +"_no.csv";
-        extractorADData.extract(inPath, inPathLabel, outPath, outPathNo);*/
-        /* has no label file
-        String inPath = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operate.pcap";
-        String outPath = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operateqqq.csv";
-        String outPathNo = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operate_noqqq.csv";
-        int data_class = 0;
-//        extractorADData.extract(inPath, outPath, outPathNo, data_class);
-        extractorICSADData.extract(inPath, outPath, outPathNo, data_class);*/
 
-        /* Generate label file
-        String inPathLabel = desktopPath + "\\test2\\run1_6rtu(1)_labeled.csv";
-        preprocessor.generateLabelFile(inPathLabel, 134690, 0);*/
+        /* Transform Data*/
+        String innerPath = desktopPath + "\\experiment\\all attacks\\run1_6rtu(1).csv";
+        Set<String> innerIpSet = preprocessor.getIpSet(innerPath, true);
 
-        /* Transform NSLKDD
-        List<String> inPathList = new ArrayList<>();
-        String inPath1 = desktopPath + "\\test5\\KDDTrain+_edited";
-        String inPath2 = desktopPath + "\\test5\\KDDTest+_edited";
-//        String inPath3 = desktopPath + "\\test5\\KDDTrain+_edited_test_002";
-        inPathList.add(inPath1);
-        inPathList.add(inPath2);
-//        inPathList.add(inPath3);
-        int classIndex = 0;
-        boolean includeHeader = false;
-        preprocessor.transformNSLKDD(inPathList, classIndex, includeHeader);*/
-
-        /* Transform SCADA Data
-        List<String> inPathList = new ArrayList<>();
-        String inPath1 = desktopPath + "\\test1_new\\CnC_uploading_exe_modbus_6RTU_with_operate";
-        String inPath2 = desktopPath + "\\test1_new\\exploit_ms08_netapi_modbus_6RTU_with_operate";
-        String inPath3 = desktopPath + "\\test1_new\\Modbus_polling_only_6RTU";
-        String inPath4 = desktopPath + "\\test1_new\\run1_6rtu(1)";
-        String inPath5 = desktopPath + "\\test1_new\\send_a_fake_command_modbus_6RTU_with_operate";
-        String inPath6 = desktopPath + "\\test1_new\\channel_4d_12s(2)";
-        String inPath7 = desktopPath + "\\test1_new\\characterization_modbus_6RTU_with_operate";
-        String inPath8 = desktopPath + "\\test1_new\\moving_two_files_modbus_6RTU";
-        inPathList.add(inPath1);
-        inPathList.add(inPath2);
-        inPathList.add(inPath3);
-        inPathList.add(inPath4);
-        inPathList.add(inPath5);
-        inPathList.add(inPath6);
-        inPathList.add(inPath7);
-        inPathList.add(inPath8);
+        String allPath = desktopPath + "\\experiment\\all attacks\\";
+        String allName = "all files.csv";
         int classIndex = 0;
         boolean includeHeader = true;
-        preprocessor.transformSCADAData(inPathList, classIndex, includeHeader);*/
+        preprocessor.transformSCADADataInICS(innerIpSet, allPath, allName, classIndex, includeHeader);
 
-        /* Normalize input data*/
+        /* Normalize data
         List<String> inPathList = new ArrayList<>();
         String inPath1 = desktopPath + "\\test2\\CnC_uploading_exe_modbus_6RTU_with_operate_ef_oh";
         String inPath2 = desktopPath + "\\test2\\exploit_ms08_netapi_modbus_6RTU_with_operate_ef_oh";
@@ -253,26 +216,55 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         int classIndex = 0;
         boolean includeHeader = true;
         String[] options = new String[]{"-R", "first-last"};
-        preprocessor.normalize(inPathList, false, true, classIndex, includeHeader, options);
+        preprocessor.normalize(inPathList, false, true, classIndex, includeHeader, options);*/
+    }
 
-        /* Sample NSLKDD
-        String inPath = desktopPath + "\\test6\\KDDTrain+_edited_ef_ed_oh_norm_normal";
-        int classIndex = 0;
-        boolean includeHeader = true;
-//        String[] optionsKDD = new String[]{"-N", "first-last"};
-        String[] optionsKDD = null;
-//        int seed = 0;
-        for(int a=0; a<10; a++){
-            preprocessor.sampleNSLKDD(inPath, 5000, false, a, classIndex, includeHeader, optionsKDD);
+    public void callExtractor () throws Exception {
+        String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
+        /*honeypot
+        String filename = "modbus_2017-2018";
+        String inPath = desktopPath + "\\experiment\\honeypot\\"+ filename +".pcap";
+        String orgPath = desktopPath + "\\experiment\\honeypot\\honeypot-info.csv";
+        int data_class = 14;
+        Map<String, List<String>> orgModificationsMap = honeypotData.convertData(inPath, orgPath);
+        for(Map.Entry<String, List<String>> entry : orgModificationsMap.entrySet()){
+            String outPath = desktopPath + "\\experiment\\honeypot\\"+ entry.getKey() +".csv";
+            String outPathNo = desktopPath + "\\experiment\\honeypot\\"+ entry.getKey() +"_no.csv";
+            extractorICSADData.extract(entry.getValue(), outPath, outPathNo, data_class++);
         }*/
 
-        /* combine some csv files
-        List<String> inPathList = new ArrayList<>();
-        String inPath1 = desktopPath + "\\test4_SAE\\KDDTrain+_edited_one-hot_discretize_only_normal_part_norm_encode_13_outliers.csv";
-        String inPath2 = desktopPath + "\\test4_SAE\\KDDTrain+_edited_one-hot_discretize_sample_no_normal_norm_encode_13.csv";
-        inPathList.add(inPath1);
-        inPathList.add(inPath2);
-        String outputPath = desktopPath + "\\test4_SAE\\KDDTrain+_edited_one-hot_discretize_norm_encode_13_combined.csv";
-        preprocessor.combineCSVFiles(inPathList, true, outputPath);*/
+        /* scanning tools
+        String filename = "scadascan-master";
+        String inPath = desktopPath + "\\experiment\\scanning tools\\"+ filename +".pcap";
+        String outPath = desktopPath + "\\experiment\\scanning tools\\"+ filename +".csv";
+        String outPathNo = desktopPath + "\\experiment\\scanning tools\\"+ filename +"_no.csv";
+        int data_class = 13;
+        List<String> stringFlowList = scanningToolData.convertData(inPath);
+        extractorICSADData.extract(stringFlowList, outPath, outPathNo, data_class);*/
+
+        /* channel_4d_12s
+        String filename = "channel_4d_12s(2)";
+        String inPath = desktopPath + "\\experiment\\SCADA\\"+ filename +".pcap";
+        String outPath = desktopPath + "\\experiment\\SCADA\\"+ filename +".csv";
+        String outPathNo = desktopPath + "\\experiment\\SCADA\\"+ filename +"_no.csv";
+        int data_class = 6;
+        List<String> stringFlowList = scadaData.convertData(inPath);
+        extractorICSADData.extract(stringFlowList, outPath, outPathNo, data_class);*/
+
+        /* has label file
+        String filename = "send_a_fake_command_modbus_6RTU_with_operate";
+        String inPath = desktopPath + "\\experiment\\SCADA\\"+ filename +".pcap";
+        String inPathLabel = desktopPath + "\\experiment\\SCADA\\"+ filename +"_labeled.csv";
+        String outPath = desktopPath + "\\experiment\\SCADA\\"+ filename +".csv";
+        String outPathNo = desktopPath + "\\experiment\\SCADA\\"+ filename +"_no.csv";
+        extractorICSADData.extract(inPath, inPathLabel, outPath, outPathNo);*/
+
+        /* has no label file
+        String inPath = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operate.pcap";
+        String outPath = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operateqqq.csv";
+        String outPathNo = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operate_noqqq.csv";
+        int data_class = 0;
+//        extractorADData.extract(inPath, outPath, outPathNo, data_class);
+        extractorICSADData.extract(inPath, outPath, outPathNo, data_class);*/
     }
 }

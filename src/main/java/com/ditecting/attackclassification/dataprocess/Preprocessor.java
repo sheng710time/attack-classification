@@ -250,17 +250,37 @@ public class Preprocessor {
     }
 
     /**
+     * Get all involved IPs
+     * @param innerPath
+     * @param includeHeader
+     * @return
+     */
+    public Set<String> getIpSet (String innerPath, boolean includeHeader){
+        Set<String> innerIpSet = new HashSet<>();
+        List<String[]> strsList = CSVUtil.readMulti(innerPath, includeHeader);
+        for(int b=0; b<strsList.size(); b++){
+            innerIpSet.add(strsList.get(b)[0]);//src_addr
+            innerIpSet.add(strsList.get(b)[1]);//dst_addr
+        }
+
+        return innerIpSet;
+    }
+
+    /**
      * Discretize SCADA data
-     * @param inPathList
+     * @param allPath
+     * @param allName
      * @param includeHeader
      * @throws Exception
      */
-    public void transformSCADADataInICS (List<String> inPathList, int classIndex, boolean includeHeader) throws Exception {
+    public void transformSCADADataInICS (Set<String> innerIpSet, String allPath, String allName, int classIndex, boolean includeHeader) throws Exception {
+        List<String[]> allList = CSVUtil.readMulti(allPath + allName, includeHeader);
+
         /* Create a temp CSV file to store all CSV files*/
         List<String[]> strsListAll = new ArrayList<>();
-        int [] sizes = new int[inPathList.size()];
-        for(int a=0; a<inPathList.size(); a++){
-            List<String[]> strsList = CSVUtil.readMulti(inPathList.get(a)+".csv", includeHeader);
+        int [] sizes = new int[allList.size()];
+        for(int a=0; a<allList.size(); a++){
+            List<String[]> strsList = CSVUtil.readMulti(allPath+allList.get(a)[0]+".csv", includeHeader);
             sizes[a] = strsList.size();
             if(strsListAll.size() < 1 && includeHeader && strsList.size()>0){
                 String[] header = new String[strsList.get(0).length];
@@ -269,9 +289,18 @@ public class Preprocessor {
                 }
                 strsListAll.add(header);
             }
+            for(int c=0; c<strsList.size(); c++){
+                if(!innerIpSet.contains(strsList.get(c)[0])){// manipulate outer src_ip
+                    strsList.get(c)[0] = "0.0.0.0";
+                }
+                if(!innerIpSet.contains(strsList.get(c)[1])){// manipulate outer dst_ip
+                    strsList.get(c)[1] = "0.0.0.1";
+                }
+            }
+
             strsListAll.addAll(strsList);
         }
-        String tempFileName = inPathList.get(0)+"_temp_"+System.currentTimeMillis()+".csv";
+        String tempFileName = allPath+"_temp_"+System.currentTimeMillis()+".csv";
         CSVUtil.write(tempFileName, strsListAll);
 
         /* Load all instances from the temp CSV file */
@@ -280,7 +309,7 @@ public class Preprocessor {
 
         /* Discretize continuous data (eq freq) : numeric attr->nominal attr including data types and values */
         Discretize discretizeEF = new Discretize();
-        discretizeEF.setOptions(new String[]{"-B", "100", "-R", "first-last", "-F"});//"-F" equal frequency method for discretization
+        discretizeEF.setOptions(new String[]{"-B", "100", "-R", "5-last", "-F"});//"-F" equal frequency method for discretization
         discretizeEF.setInputFormat(instAll);
         Instances instAll_EF = Filter.useFilter(instAll, discretizeEF);
 
@@ -290,34 +319,60 @@ public class Preprocessor {
         nominalToBinary.setInputFormat(instAll_EF);
         Instances instAll_EF_OH = Filter.useFilter(instAll_EF, nominalToBinary);
 
+        /* Normalize all data */
+        String[] tempHeader = new String[instAll_EF_OH.get(0).numAttributes()];
+        for(int a=0; a<tempHeader.length; a++){
+            tempHeader[a] = "attr" + (a+1);
+        }
+        List<String[]> strsListAll_EF_OH = new ArrayList<>();
+        strsListAll_EF_OH.add(tempHeader);
+        for(int b=0; b<instAll_EF_OH.size(); b++){
+            Instance instance = instAll_EF_OH.get(b);
+            String[] data = new String[instAll_EF_OH.numAttributes()];
+            for (int d = 0; d < data.length; d++) {
+                data[d] = instance.toDoubleArray()[d] + "";
+            }
+            strsListAll_EF_OH.add(data);
+        }
+        String tempFileName2 = allPath+"_temp2_"+System.currentTimeMillis()+".csv";
+        CSVUtil.write(tempFileName2, strsListAll_EF_OH);
+        /* Load all instances from the temp CSV file */
+        String[] optionsNominal2 = new String[]{"-R", "first-last"};
+        Instances instAll_EF_OH_Num = FileLoader.loadInstancesFromCSV(tempFileName2, classIndex, includeHeader, optionsNominal2);
+        /* Normalize data */
+        Normalize normalize = new Normalize();
+        normalize.setInputFormat(instAll_EF_OH_Num);
+        Instances instAll_EF_OH_NORM = Filter.useFilter(instAll_EF_OH_Num, normalize);
+
         /* Output data to csv file */
-        String[] header = new String[instAll_EF_OH.get(0).numAttributes()];
-        for(int a=0; a<instAll_EF_OH.get(0).numAttributes(); a++){
+        String[] header = new String[instAll_EF_OH_NORM.numAttributes()];
+        for(int a=0; a<header.length; a++){
             header[a] = "attr" + (a+1);
         }
         int index = 0;
-        for(int b=0; b<inPathList.size(); b++) {
+        for(int b=0; b<allList.size(); b++) {
             List<String[]> strDataList = new ArrayList<>();
             strDataList.add(header);
             for (int c = 0; c < sizes[b]; c++) {
-                Instance instance = instAll_EF_OH.get(index++);
-                String[] data = new String[instAll_EF_OH.numAttributes()];
-                for (int d = 0; d < instance.numAttributes(); d++) {
+                Instance instance = instAll_EF_OH_NORM.get(index++);
+                String[] data = new String[header.length];
+                for (int d = 0; d < header.length; d++) {
                     data[d] = instance.toDoubleArray()[d] + "";
                 }
                 strDataList.add(data);
             }
 
-            String suffix = "_ef_oh.csv";
-            CSVUtil.write(inPathList.get(b)+suffix, strDataList);
+            String suffix = "_ef_oh_norm.csv";
+            CSVUtil.write(allPath+"\\dealed\\"+allList.get(b)[0]+suffix, strDataList);
         }
 
         /* Delete the temp file*/
         System.gc();
-        File file = new File(tempFileName);
+        File file1 = new File(tempFileName);
+        File file2 = new File(tempFileName2);
         boolean flag = false;
         while(!flag){
-            flag = file.delete();
+            flag = file1.delete() & file2.delete();
         }
     }
 
