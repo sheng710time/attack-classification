@@ -57,10 +57,10 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 //        callExtractor();
 
         /* Preprocessor */
-        callPreprocessor();
+//        callPreprocessor();
 
         /* SAE */
-//        callSAE_AD();
+        callSAE_AD();
 
         /* LOF */
 //        callLOF_AD ();
@@ -125,14 +125,14 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 
     public void callSAE_AD () throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        int first = 90;
-        int second = 50;
-        int third = 10;
+        int first = 78;
+        int second = 38;
+        int third = 2;
         SAE_AD saeAD = new SAE_AD(first, second, third, 0);
-        String trainFilePath = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm.csv";
-        String encodeFilePath = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm.csv";
-        String outPathEncode = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm"+ "_encode_" + second + "-" +third +".csv";
-        int labelIndex = 90;
+        String trainFilePath = desktopPath + "\\experiment\\exp1\\ICS\\run1_6rtu(1)_ef_oh_norm.csv";
+        String encodeFilePath = desktopPath + "\\experiment\\exp1\\ICS\\run1_6rtu(1) && attacks.csv";
+        String outPathEncode = desktopPath + "\\experiment\\exp1\\ICS\\run1_6rtu(1) && attacks"+ "_encode_" + second + "-" +third +".csv";
+        int labelIndex = 78;
         int numClasses = 1;
         int batchSizeTraining = 100;
         int batchSizeTesting = 100;
@@ -185,26 +185,24 @@ public class AttackClassificationApplication  implements CommandLineRunner {
     public void callPreprocessor () throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
 
-        /* Transform Data*/
+        /* Transform Data By ICS
         String innerPath = desktopPath + "\\experiment\\all attacks\\run1_6rtu(1).csv";
         Set<String> innerIpSet = preprocessor.getIpSet(innerPath, true);
-
         String allPath = desktopPath + "\\experiment\\all attacks\\";
         String allName = "all files.csv";
         int classIndex = 0;
         boolean includeHeader = true;
-        preprocessor.transformSCADADataInICS(innerIpSet, allPath, allName, classIndex, includeHeader);
+        preprocessor.transformSCADADataInICS(innerIpSet, allPath, allName, classIndex, includeHeader);*/
 
-        /* Normalize data
+        /* Transform Data By IT
         List<String> inPathList = new ArrayList<>();
-        String inPath1 = desktopPath + "\\test2\\CnC_uploading_exe_modbus_6RTU_with_operate_ef_oh";
-        String inPath2 = desktopPath + "\\test2\\exploit_ms08_netapi_modbus_6RTU_with_operate_ef_oh";
-        String inPath3 = desktopPath + "\\test2\\Modbus_polling_only_6RTU_ef_oh";
-        String inPath4 = desktopPath + "\\test2\\run1_6rtu(1)_ef_oh";
-        String inPath5 = desktopPath + "\\test2\\send_a_fake_command_modbus_6RTU_with_operate_ef_oh";
-        String inPath6 = desktopPath + "\\test2\\channel_4d_12s(2)_ef_oh";
-        String inPath7 = desktopPath + "\\test2\\characterization_modbus_6RTU_with_operate_ef_oh";
-        String inPath8 = desktopPath + "\\test2\\moving_two_files_modbus_6RTU_ef_oh";
+        String inPath1 = desktopPath + "\\experiment\\exp1\\IT\\channel_4d_12s(2)";
+        String inPath2 = desktopPath + "\\experiment\\exp1\\IT\\characterization_modbus_6RTU_with_operate";
+        String inPath3 = desktopPath + "\\experiment\\exp1\\IT\\CnC_uploading_exe_modbus_6RTU_with_operate";
+        String inPath4 = desktopPath + "\\experiment\\exp1\\IT\\exploit_ms08_netapi_modbus_6RTU_with_operate";
+        String inPath5 = desktopPath + "\\experiment\\exp1\\IT\\moving_two_files_modbus_6RTU";
+        String inPath6 = desktopPath + "\\experiment\\exp1\\IT\\run1_6rtu(1)";
+        String inPath7 = desktopPath + "\\experiment\\exp1\\IT\\send_a_fake_command_modbus_6RTU_with_operate";
         inPathList.add(inPath1);
         inPathList.add(inPath2);
         inPathList.add(inPath3);
@@ -212,7 +210,26 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         inPathList.add(inPath5);
         inPathList.add(inPath6);
         inPathList.add(inPath7);
-        inPathList.add(inPath8);
+        int classIndex = 0;
+        boolean includeHeader = true;
+        preprocessor.transformSCADAData(inPathList, classIndex, includeHeader);*/
+
+        /* Normalize data
+        List<String> inPathList = new ArrayList<>();
+        String inPath1 = desktopPath + "\\experiment\\exp1\\IT\\channel_4d_12s(2)_ef";
+        String inPath2 = desktopPath + "\\experiment\\exp1\\IT\\characterization_modbus_6RTU_with_operate_ef";
+        String inPath3 = desktopPath + "\\experiment\\exp1\\IT\\CnC_uploading_exe_modbus_6RTU_with_operate_ef";
+        String inPath4 = desktopPath + "\\experiment\\exp1\\IT\\exploit_ms08_netapi_modbus_6RTU_with_operate_ef";
+        String inPath5 = desktopPath + "\\experiment\\exp1\\IT\\moving_two_files_modbus_6RTU_ef";
+        String inPath6 = desktopPath + "\\experiment\\exp1\\IT\\run1_6rtu(1)_ef";
+        String inPath7 = desktopPath + "\\experiment\\exp1\\IT\\send_a_fake_command_modbus_6RTU_with_operate_ef";
+        inPathList.add(inPath1);
+        inPathList.add(inPath2);
+        inPathList.add(inPath3);
+        inPathList.add(inPath4);
+        inPathList.add(inPath5);
+        inPathList.add(inPath6);
+        inPathList.add(inPath7);
         int classIndex = 0;
         boolean includeHeader = true;
         String[] options = new String[]{"-R", "first-last"};
@@ -253,11 +270,12 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 
         /* has label file
         String filename = "send_a_fake_command_modbus_6RTU_with_operate";
-        String inPath = desktopPath + "\\experiment\\SCADA\\"+ filename +".pcap";
-        String inPathLabel = desktopPath + "\\experiment\\SCADA\\"+ filename +"_labeled.csv";
-        String outPath = desktopPath + "\\experiment\\SCADA\\"+ filename +".csv";
-        String outPathNo = desktopPath + "\\experiment\\SCADA\\"+ filename +"_no.csv";
-        extractorICSADData.extract(inPath, inPathLabel, outPath, outPathNo);*/
+        String inPath = desktopPath + "\\experiment\\exp1\\IT\\"+ filename +".pcap";
+        String inPathLabel = desktopPath + "\\experiment\\exp1\\IT\\"+ filename +"_labeled.csv";
+        String outPath = desktopPath + "\\experiment\\exp1\\IT\\"+ filename +".csv";
+        String outPathNo = desktopPath + "\\experiment\\exp1\\IT\\"+ filename +"_no.csv";
+        extractorADData.extract(inPath, inPathLabel, outPath, outPathNo);
+//        extractorICSADData.extract(inPath, inPathLabel, outPath, outPathNo);*/
 
         /* has no label file
         String inPath = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operate.pcap";
