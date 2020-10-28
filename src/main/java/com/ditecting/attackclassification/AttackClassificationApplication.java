@@ -60,10 +60,10 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 //        callPreprocessor();
 
         /* SAE */
-        callSAE_AD();
+//        callSAE_AD();
 
         /* LOF */
-//        callLOF_AD ();
+        callLOF_AD ();
 
         /* DPCS */
 //        callDPCS();
@@ -147,18 +147,18 @@ public class AttackClassificationApplication  implements CommandLineRunner {
     public void callLOF_AD () throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
 
-        int KNN = 20;
+        int KNN = 55;
         int classIndex = 0;
         boolean includeHeader = true;
         String[] options = new String[]{"-R", "first-last"};
-        double cutOffValue = 5;
+        double cutOffValue = 1.4;
         /* Build LOF model*/
         LOF_AD lofAD = new LOF_AD(0);
-        String trainFilePath = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm.csv";
+        String trainFilePath = desktopPath + "\\experiment\\exp1\\ICS\\run1_6rtu(1)_ef_oh_norm.csv";
         lofAD.train(trainFilePath, KNN, KNN, classIndex, includeHeader, options);
 
         /* Evaluate training data*/
-        lofAD.evaluateTrainingData(cutOffValue, KNN, true);
+//        lofAD.evaluateTrainingData(cutOffValue, KNN, true);
 //        String outPathOutliers = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm_encode_50-10_outliers_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
 //        lofAD.outputOutliers(outPathOutliers);
 
@@ -168,15 +168,16 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         /* Read LOF model
         LOF lof = LOF_AD.readLOF(modelPath);*/
 
-        /* Test testing data
-        String testFilePath = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm_encode_50-10.csv";
+        /* Test testing data*/
+        String testFileName = "attacks";
+        String testFilePath = desktopPath + "\\experiment\\exp1\\ICS\\" + testFileName + ".csv";
         lofAD.test(testFilePath, classIndex, includeHeader, options);
         lofAD.evaluate(cutOffValue);
-        String outPathResult = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm_encode_50-10_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
-        String outPathOutlier = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm_encode_50-10_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier.csv";
-        String outPathOutlierNo = desktopPath + "\\test2\\dealed\\characterization_modbus_6RTU_with_operate_ef_oh_norm_encode_50-10_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier_no.csv";
-        int mode = 2;
-        lofAD.output(outPathResult, outPathOutlier, outPathOutlierNo, cutOffValue, mode);*/
+        String outPathResult = desktopPath + "\\experiment\\exp1\\ICS\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
+        String outPathOutlier = desktopPath + "\\experiment\\exp1\\ICS\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier.csv";
+        String outPathOutlierNo = desktopPath + "\\experiment\\exp1\\ICS\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier_no.csv";
+        int mode = 0;
+        lofAD.output(outPathResult, outPathOutlier, outPathOutlierNo, cutOffValue, mode);
 
 //        Instances predictedData = LOF_AD.test(lof, testFilePath, classIndex, includeHeader, options);
 //        LOF_AD.evaluate(predictedData, testFilePathNo, testFilePathLabel, cutOffValue);

@@ -144,7 +144,7 @@ public class LOF_AD {
             Instances instances = lnn.kNearestNeighbours(estimatingData.get(a), (KNN+1) * nnFactor);
             double[] distances = lnn.getDistances();
             double knnDistance = distances[KNN-1];
-            System.out.println(knnDistance);
+//            System.out.println(knnDistance);
             knnDistances[a] = knnDistance;
             totalKnnDistance += knnDistance;
             if(knnDistance > 1e-8){
