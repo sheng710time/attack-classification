@@ -26,9 +26,9 @@ public class SCADAData {
     @Autowired
     private PluginCachePool pluginCachePool;
 
-    public List<String> convertData (String inPath) throws InterruptedException {
+    public List<String> convertData (String inPath) throws InterruptedException {//TODO test
         Map<String, String> ipMap = new HashMap<>();
-        ipMap.put("192.168.43.148", "192.168.1.100");
+//        ipMap.put("192.168.43.148", "192.168.1.100");
         ipMap.put("192.168.43.149", "192.168.1.101");
 
         loadHolder.load(inPath);
@@ -36,12 +36,11 @@ public class SCADAData {
         List<String> modificationList = new ArrayList<>();
         for(String stringFlow : stringFlowList){
             JsonObject jsonObject = JsonParser.parseString(stringFlow).getAsJsonObject();
-            String srcIp = jsonObject.get("srcIp").getAsString();
+//            String srcIp = jsonObject.get("srcIp").getAsString();
             String dstIp = jsonObject.get("dstIp").getAsString();
-            if(srcIp.equals("192.168.43.148") || srcIp.equals("192.168.43.149")){//ignore unrelated data
-                String modification1 = stringFlow.replaceAll(srcIp, ipMap.get(srcIp));
-                String modification2 = modification1.replaceAll(dstIp, ipMap.get(dstIp));
-                modificationList.add(modification2);
+            if(dstIp.equals("192.168.43.149")){//ignore unrelated data
+                String modification1 = stringFlow.replaceAll(dstIp, ipMap.get(dstIp));
+                modificationList.add(modification1);
             }
         }
         return modificationList;

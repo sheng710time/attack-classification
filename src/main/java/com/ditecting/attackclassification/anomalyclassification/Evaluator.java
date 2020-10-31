@@ -37,7 +37,7 @@ public class Evaluator {
             if (Double.parseDouble(innerSamples.get(a).getLabel()) > 0) {
                 num_total_P++;
             }else {
-                num_TN++;//TODO test
+                num_TN++;
             }
         }
         for (int b = 0; b < outlierSamples.size(); b++) {
@@ -48,7 +48,7 @@ public class Evaluator {
                 }
             }else {
                 if (Double.parseDouble(outlierResults.get(b)[2]) == 0) {
-                    num_TN++;//TODO test
+                    num_TN++;
                 }
             }
         }
