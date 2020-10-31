@@ -32,21 +32,13 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
     private Map<Integer, Sample> clusterCenterMap; // centers of clusters <clusterIndex, center-sample>
 
 
-    public void init (String trainFilePathLabel, String trainFilePath, int trainLabelIndex, int trainIndex,int batchSize, double percentage) throws IOException, InterruptedException {
+    public void init (String trainFilePath, int labelIndex, int batchSize, double percentage) throws IOException, InterruptedException {
         log.info("Start to init.");
         this.batchSize = batchSize;
         /* Load labeled and unlabeled training data */
-        inputSamples = new ArrayList<>();
-        if(trainFilePathLabel != null){
-            DataReader trainingReaderLabel = new DataReader();
-            trainingReaderLabel.readData(trainFilePathLabel,trainLabelIndex);
-            inputSamples.addAll(trainingReaderLabel.getSamples());
-        }
-        if(trainFilePath != null){
-            DataReader trainingReader = new DataReader();
-            trainingReader.readData(trainFilePath,trainIndex);
-            inputSamples.addAll(trainingReader.getSamples());
-        }
+        DataReader trainingReaderLabel = new DataReader();
+        trainingReaderLabel.readData(trainFilePath,labelIndex);
+        inputSamples = trainingReaderLabel.getSamples();
         inputSampleSize = inputSamples.size();
         /* Split data into batches */
         samplesList = new ArrayList<>();
@@ -76,8 +68,8 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         for(DensityPeakClusterStrict dpcs : dpcsList){
             dcTotal += dpcs.getDc();
         }
-//        this.dc = dcTotal/dpcsList.size();
-        this.dc = 0.2;
+        this.dc = dcTotal/dpcsList.size();
+        this.dc = 0.25;
         log.info("Get dc:" + dc);
         for(DensityPeakClusterStrict dpcs : dpcsList){
             dpcs.setDc(dc);
@@ -291,7 +283,6 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
                 centerId = distanceList.get(a).getLeft();
             }
         }
-
         return new ImmutablePair<>(centerId, currentMinDistance);
     }
 
@@ -352,7 +343,9 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         List<Sample> testingSamples = testingReader.getSamples();
         for(int a=0; a<testingSamples.size(); a++){
             Sample sample = testingSamples.get(a);
-            int centerId = findNearestCenter(sample, dc, KNC).getKey();
+            Pair<Integer, Double> nearestCenter = findNearestCenter(sample, dc, KNC);
+            System.out.println(nearestCenter.getRight());
+            int centerId = nearestCenter.getKey();
             if(centerId != -1){
                 sample.setPredictLabel(clustersLabels.get(centerId)+"");
             } else {// The sample doesn't belong to any existing classes, and create a new cluster for it
@@ -363,22 +356,29 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         return testingSamples;
     }
 
-    public List<Sample> predict (String testFilePath, int testLabelIndex, int KNC) throws IOException {
+    public List<Sample> predict (String testFilePath, int testLabelIndex, int KNC, int Maximum) throws IOException {
         log.info("Start to predict.");
         int currentLabel = 1;
         DataReader testingReader = new DataReader();
         testingReader.readData(testFilePath,testLabelIndex);
         List<Sample> testingSamples = testingReader.getSamples();
+        int times_update =0;
+        int times_create =0;
         for(int a=0; a<testingSamples.size(); a++){
             Sample sample = testingSamples.get(a);
             Pair<Integer, Double> nearestCenter = findNearestCenter(sample, dc, KNC);
             int centerId = nearestCenter.getKey();
             if(centerId != -1){
                 sample.setPredictLabel(clustersLabels.get(centerId)+"");
-                if(nearestCenter.getValue() > 0){// update dpcsd with a new sample
+                double wc = clusterToSampleMap.get(centerId).size()<Maximum ? clusterToSampleMap.get(centerId).size() : Maximum;
+                double du = dc / Maximum * wc;
+                double centerDistance = twoSampleDistance(sample, clusterCenterMap.get(centerId));
+                if(centerDistance > du){// update dpcsd with a new sample
+                    System.out.println("update: " + (++times_update));
                     update(sample, centerId);
                 }
             } else {// The sample doesn't belong to any existing classes, and then create a new cluster for it
+                System.out.println("create: " + (++times_create));
                 sample.setPredictLabel(currentLabel+"");
                 createNewCluster(sample, currentLabel++);
             }
@@ -393,7 +393,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
      * @param label
      */
     private void createNewCluster (Sample sample, int label){
-        log.info("Create a new cluster.");
+//        log.info("Create a new cluster.");
         inputSamples.add(sample);
         List<Integer> elementList = new ArrayList<>();
         elementList.add(inputSamples.size()-1);
@@ -408,7 +408,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
      * @param centerId
      */
     private void update(Sample sample, int centerId) {
-        log.info("Update the model.");
+//        log.info("Update the model.");
         inputSamples.add(sample);
         /*update the cluster with centerId*/
         List<Integer> cluster = clusterToSampleMap.get(centerId);
@@ -589,10 +589,10 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
 
         @Override
         public void run() {
-            log.info("Thread [" + Thread.currentThread().getName() + "] starts to run.");
+//            log.info("Thread [" + Thread.currentThread().getName() + "] starts to run.");
             dpcs.init(samples, percentage);
             countDownLatch.countDown();
-            log.info("Thread [" + Thread.currentThread().getName() + "] ends to run.");
+//            log.info("Thread [" + Thread.currentThread().getName() + "] ends to run.");
         }
     }
 
@@ -609,7 +609,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
 
         @Override
         public void run() {
-            log.info("Thread [" + Thread.currentThread().getName() + "] starts to run.");
+//            log.info("Thread [" + Thread.currentThread().getName() + "] starts to run.");
             dpcs.train();
 
             /* update index with batchIndex */
@@ -644,7 +644,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
             }
 
             countDownLatch.countDown();
-            log.info("Thread [" + Thread.currentThread().getName() + "] ends to run.");
+//            log.info("Thread [" + Thread.currentThread().getName() + "] ends to run.");
         }
     }
 

@@ -39,7 +39,9 @@ public class LOF_AD {
     private boolean isTested;
     private int mode; // 0: none, 1: normalize, 2: standardize
     private List<Instance> innerTrainingData;
+    private List<String[]> innerTrainingDataNoList;
     private List<Instance> outlierTrainingData;
+    private List<String[]> outlierTrainingDataNoList;
 
     public LOF_AD() {
         this(2);
@@ -106,23 +108,33 @@ public class LOF_AD {
 
         /* Find normal instances */
         innerTrainingData = new ArrayList<>();
+        innerTrainingDataNoList = new ArrayList<>();
+        innerTrainingDataNoList.add(new String[]{"innerNo", "flowNo"});
         outlierTrainingData = new ArrayList<>();
+        outlierTrainingDataNoList = new ArrayList<>();
+        outlierTrainingDataNoList.add(new String[]{"outlierNo", "flowNo"});
+        int innerCount = 0;
+        int outlierCount = 0;
+        int total = 0;
         for(Instance inst : predictedData){
             double lof = inst.value(inst.numAttributes()-1);
             double lofFormatted = new BigDecimal(lof).setScale(4, BigDecimal.ROUND_HALF_UP).doubleValue();
             int preLabel = compareCutOffValue(including, lofFormatted, cutOffValue) ? 0:1;
             if(preLabel == 0){
                 innerTrainingData.add(inst);
+                innerTrainingDataNoList.add(new String[]{""+innerCount++, ""+total});
             }else {
                 outlierTrainingData.add(inst);
+                outlierTrainingDataNoList.add(new String[]{""+outlierCount++, ""+total});
             }
+            total++;
         }
 
         System.out.println("innerNum: " + innerTrainingData.size());
         System.out.println("outerNum: " + outlierTrainingData.size());
         /* Calculate KNN distances */
         predictedData.deleteAttributeAt(predictedData.numAttributes()-1);
-//        estimateKnnDistances(cutOffValue, KNN, innerTrainingData);
+        estimateKnnDistances(cutOffValue, KNN, innerTrainingData);
         estimateKnnDistances(cutOffValue, KNN, outlierTrainingData);
     }
 
@@ -172,7 +184,7 @@ public class LOF_AD {
         System.out.println("maxKnnDistance: " + maxKnnDistance);
     }
 
-    public void outputOutliers (String outPathOutliers) {
+    public void outputOutliers (String outPathOutliers, String outPathOutliersNo) {
         if(outlierTrainingData==null || outlierTrainingData.size()<1){
             return;
         }
@@ -194,6 +206,7 @@ public class LOF_AD {
             strDataList.add(data);
         }
         CSVUtil.write(outPathOutliers, strDataList);
+        CSVUtil.write(outPathOutliersNo, outlierTrainingDataNoList);
     }
 
     public void test (String testFilePath, int classIndex, boolean includeHeader, String[] options) throws Exception {
@@ -264,48 +277,57 @@ public class LOF_AD {
     }
 
     /**
-     *
+     * Output results
      * @param outPathResult
+     * @param outPathInner
+     * @param outPathInnerNo
+     * @param outPathOutlier
+     * @param outPathOutlierNo
      * @param cutOffValue
-     * @param mode 0:resultsList, 1:outliersList, 2:resultsList && outliersList
      */
-    public void output (String outPathResult, String outPathOutlier, String outPathOutlierNo, double cutOffValue, int mode){
+    public void output (String outPathResult, String outPathInner, String outPathInnerNo, String outPathOutlier, String outPathOutlierNo, double cutOffValue){
         if(!isTested){
             throw new IllegalStateException("No testing data has been predicted.");
         }
 
         List<String[]> resultsList = new ArrayList<>();
         resultsList.add(new String[]{"flowNo", "data_class", "predicted_class", "lof_score"});
+        List<Instance> innerList = new ArrayList<>();
+        List<String[]> innerNoList = new ArrayList<>();
+        innerNoList.add(new String[]{"innerNo", "flowNo"});
         List<Instance> outlierList = new ArrayList<>();
         List<String[]> outlierNoList = new ArrayList<>();
         outlierNoList.add(new String[]{"outlierNo", "flowNo"});
+        int innerCount = 0;
         int outlierCount = 0;
         for( int a=0; a<predictedData.size(); a++){
             int realLabel = (int) predictedData.get(a).value(predictedData.classIndex());
             double lof = predictedData.get(a).value(predictedData.numAttributes()-1);
-            double lofFormatted = new BigDecimal(lof).setScale(4, BigDecimal.ROUND_HALF_UP).doubleValue();
-            int preLabel = compareCutOffValue(true, lofFormatted, cutOffValue)? 0:1;
+            int preLabel = compareCutOffValue(true, lof, cutOffValue)? 0:1;
             String[] result = new String[]{a+"", realLabel+"", preLabel+"", predictedData.get(a).value(predictedData.numAttributes()-1)+""};
             resultsList.add(result);
             if(preLabel == 1){
                 outlierList.add(predictedData.get(a));
                 outlierNoList.add(new String[]{""+outlierCount++, a+""});
+            }else{
+                innerList.add(predictedData.get(a));
+                innerNoList.add(new String[]{""+innerCount++, a+""});
             }
         }
 
-        if(mode==0 || mode==2){
+        /* Output results */
+        if(outPathResult != null){
             CSVUtil.write(outPathResult, resultsList);
         }
 
-        /* Output data to csv file */
+        /* Output outliers to csv file */
         predictedData.deleteAttributeAt(predictedData.numAttributes()-1);
-        if(outlierList.size()>0 && mode>0){
+        if(outlierList.size()>0 && outPathOutlier!=null){
             int numAttributes = outlierList.get(0).numAttributes();
             String[] header = new String[numAttributes];
             for(int a=0; a<numAttributes; a++){
                 header[a] = "attr" + (a+1);
             }
-
             List<String[]> strDataList = new ArrayList<>();
             strDataList.add(header);
             for(int b=0; b<outlierList.size(); b++) {
@@ -318,6 +340,27 @@ public class LOF_AD {
             }
             CSVUtil.write(outPathOutlier, strDataList);
             CSVUtil.write(outPathOutlierNo, outlierNoList);
+        }
+
+        /* Output inners to csv file */
+        if(innerList.size()>0 && outPathInner!=null){
+            int numAttributes = innerList.get(0).numAttributes();
+            String[] header = new String[numAttributes];
+            for(int a=0; a<numAttributes; a++){
+                header[a] = "attr" + (a+1);
+            }
+            List<String[]> strDataList = new ArrayList<>();
+            strDataList.add(header);
+            for(int b=0; b<innerList.size(); b++) {
+                Instance instance = innerList.get(b);
+                String[] data = new String[numAttributes];
+                for (int d = 0; d < numAttributes; d++) {
+                    data[d] = instance.toDoubleArray()[d] + "";
+                }
+                strDataList.add(data);
+            }
+            CSVUtil.write(outPathInner, strDataList);
+            CSVUtil.write(outPathInnerNo, innerNoList);
         }
     }
 

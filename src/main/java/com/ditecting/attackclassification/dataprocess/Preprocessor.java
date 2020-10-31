@@ -24,15 +24,17 @@ public class Preprocessor {
 
     /**
      * combine some csv files
-     * @param inPathList
+     * @param allPath
+     * @param allName
      * @param includeHeader
      * @param outputPath
      */
-    public void combineCSVFiles (List<String> inPathList, boolean includeHeader, String outputPath) {
-        List<String[]> strsListAll = new ArrayList<>();
+    public void combineCSVFiles (String allPath, String allName, boolean includeHeader, String outputPath) {
+        List<String[]> allList = CSVUtil.readMulti(allPath + allName+".csv", includeHeader);
 
-        for(int a=0; a<inPathList.size(); a++){
-            List<String[]> strsList = CSVUtil.readMulti(inPathList.get(a), includeHeader);
+        List<String[]> strsListAll = new ArrayList<>();
+        for(int a=0; a<allList.size(); a++){
+            List<String[]> strsList = CSVUtil.readMulti(allPath+allList.get(a)[0]+".csv", includeHeader);
             if(strsListAll.size() < 1 && includeHeader && strsList.size()>0){
                 String[] header = new String[strsList.get(0).length];
                 for(int b=0; b<header.length; b++){
