@@ -3,6 +3,7 @@ package com.ditecting.attackclassification.anomalyclassification;
 import com.ditecting.attackclassification.anomalyclassification.showdata.ShowJFreeChart;
 import com.ditecting.attackclassification.dataprocess.CSVUtil;
 
+import javax.swing.filechooser.FileSystemView;
 import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
@@ -62,40 +63,22 @@ public class DensityPeakCluster {
 	
 	public static void main(String[] args) throws IOException {
 		//读取文件数据
-        String filename = "C:\\Users\\18809\\Desktop\\test2\\exploit_ms08_netapi_modbus_6RTU_with_operate_norm.csv";
+        String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
+        String filename = desktopPath + "\\experiment3\\exp4\\DPC\\all_data.csv";
 		DataReader reader = new DataReader();
-        reader.readData(filename,20);
-		//训练数据标准化
-//		ArrayList<Sample> samplesStd = reader.getSamplesStd();
+        reader.readData(filename,65);
 		DensityPeakCluster cluster = new DensityPeakCluster(reader.getSamples());
 		cluster.calPairDistance();
 //		double dc = cluster.findDC();//dc的确定采用了类似二分查找的方法，具有一定的随机性
-        double dc = 0.01029;
+        double dc = 0.2;
 		cluster.calRhoCK(dc);//截断距离
-//		cluster.calRhoGK(dc);//高斯距离
 		cluster.calDelta();
 		cluster.calGamma();
 
-		//绘制gamma
-		ShowJFreeChart.show2DScatterPlot_dp(cluster.getSortedGammaList().subList(0,50));
-//		ShowJFreeChart.show2DScatterPlot_dp(cluster.getSortedGammaList());
-		/*聚类
-		Map<Integer, Double> DBIMap = new HashMap<Integer, Double>();
-		for(int a=2; a<15; a++){
-			double dbi = cluster.clustering(a, dc, dimension);
-			DBIMap.put(a, dbi);
-		}*/
-
-		/*绘制DBI
-		List<Map.Entry<Integer, Double>> DBIList = new ArrayList<Entry<Integer,Double>>(DBIMap.entrySet());
-		ShowJFreeChart.show2DScatterPlot_dp(DBIList);*/
-
-		/*聚类并输出结果
-		cluster.clustering(5, dc, dimension);
-//		cluster.outputCluster("C:\\Users\\18809\\Desktop\\haha.csv", cluster.clusterMap );
-		Map<Integer, Map<Integer, List<Object>>> resultMap = cluster.resultToEvaluation(cluster.clusterMap, cluster.samples);
-		Evaluation eval = new Evaluation();
-		eval.evaluate(resultMap);*/
+		/*聚类并输出结果*/
+		cluster.clustering(201);
+		String outputPath = desktopPath + "\\experiment3\\exp4\\DPC\\all_data_result_dpc.csv";
+		cluster.outputCluster(outputPath, cluster.clusterMap );
 	}
 
 	/**
@@ -134,16 +117,13 @@ public class DensityPeakCluster {
 	 * 输出聚类结果
 	 * @param clusterMap
 	 */
-	public void outputCluster(String filePath, Map<Integer, Integer> clusterMap){//
+	public void outputCluster(String filePath, Map<Integer, Integer> clusterMap){
 		List<String[]> output = new ArrayList<String[]>();
-		String[] headers = {"id", "cluster"};
-		output.add(headers);
-		for(Entry<Integer, Integer> entry : clusterMap.entrySet()){
-			String[] cluster = new String[2];
-			cluster[0] = entry.getKey().toString();
-			cluster[1] = entry.getValue().toString();
-			output.add(cluster);
-		}
+		output.add(new String[]{"flowNo", "data_class", "predicted_class"});
+		for(int a=0; a<samples.size(); a++){
+            output.add(new String[]{a+"", samples.get(a).getLabel(), clusterMap.get(a)+""});
+        }
+
 		CSVUtil.write(filePath, output);
 	}
 	
@@ -151,7 +131,7 @@ public class DensityPeakCluster {
 	 * 通过函数斜率查找聚类中心
 	 * @param centerNum 聚类中心数量
 	 */
-	public double clustering(int centerNum, double dc, int dimension) {
+	public void clustering(int centerNum) {
 		//根据centerNum生成聚类中心
 		centerList = new ArrayList<Integer>();
 		clusterMap = new HashMap<Integer, Integer>();
@@ -172,27 +152,6 @@ public class DensityPeakCluster {
 				}
 			}
 		}
-		/*输出聚类结果
-		System.out.println("*****************************聚类结果*****************************");
-		for(Entry<Integer, Integer> entry : clusterMap.entrySet()){
-			System.out.println(entry.getKey()+": "+entry.getValue());
-		}*/
-
-		/*计算聚类结果的DBI指数*/
-		List<List<double[]>> result = new ArrayList<List<double[]>>();
-		for(int a=0; a<centerList.size(); a++){
-			result.add(new ArrayList<double[]>());
-		}
-		for(Entry<Integer, Integer> cl : clusterMap.entrySet()){
-			int index = centerList.indexOf(cl.getValue());
-			double[] values = samples.get(cl.getKey()).getAttributes();
-			result.get(index).add(values);
-			//				System.out.println(cl.getKey()+"："+index);
-		}
-		ClusterEvaluate ce = new ClusterEvaluate(result, dimension);
-		double dbi = ce.evaluateClusterDBI();
-		System.out.println("dbi："+dbi);
-		return dbi;
 	}
 
 	/**

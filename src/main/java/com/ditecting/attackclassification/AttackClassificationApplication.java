@@ -27,6 +27,9 @@ public class AttackClassificationApplication  implements CommandLineRunner {
     private ExtractorICSADData extractorICSADData;
 
     @Autowired
+    private ExtractorICSSessionADData extractorICSSessionADData;
+
+    @Autowired
     private FileLoader loader;
 
     @Autowired
@@ -61,41 +64,52 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 //        callLOF_AD ();
 
         /* DPCSD */
-        callDPCSD();
+//        callDPCSD();
 
-        /* Evaluator
-        String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        String innerPath = desktopPath + "\\experiment\\exp2\\full\\KNN-35_CV-2.0\\all_attacks_result_lof_KNN-35_CV-2.0_inner.csv";
-        String outlierPath = desktopPath + "\\experiment\\exp2\\full\\KNN-35_CV-2.0\\all_attacks_result_lof_KNN-35_CV-2.0_outlier-6.csv";
-        int testLabelIndex = 78;
-        String outlierResultsPath = desktopPath + "\\experiment\\exp2\\full\\KNN-35_CV-2.0\\all_attacks_result_lof_KNN-35_CV-2.0_outlier-6_result_dpcsd.csv";
-        Evaluator.evaluate(innerPath, outlierPath, testLabelIndex, outlierResultsPath);*/
+        /* Evaluator*/
+        callEvaluator();
 
         System.out.println("");
     }
 
+    public void callEvaluator () throws IOException {
+        String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
+        /* Evaluate our method
+        int labelIndex = 65;
+//        String innerPath = desktopPath + "\\experiment3\\exp3\\outlier-abnormal\\all_attacks_result_lof_KNN-10_CV-2.0_inner.csv";
+        String innerPath = null;
+        String outlierResultsPath = desktopPath + "\\experiment3\\exp3\\allNormal-allTesting\\all_attacks_result_dpcsd_myDc-0.2_Max-100.csv";
+        Evaluator.evaluate(innerPath, labelIndex, outlierResultsPath);*/
+
+        /* Evaluate other methods*/
+        int trainingIndex = 4680;
+        String outlierResultsPath = desktopPath + "\\experiment3\\exp4\\DPCSD\\all_data_result_dpcsd_myDc-0.2.csv";
+        Evaluator.evaluate(trainingIndex, outlierResultsPath);
+
+    }
+
     public void callDPCSD () throws IOException, InterruptedException {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        String trainFilePath = desktopPath + "\\experiment\\exp2\\full\\KNN-35_CV-2.0\\run1_6rtu(1)_ef_oh_norm_result_lof_KNN-35_CV-2.0_outlier.csv";
-        int labelIndex = 78;
+        String trainFilePath = desktopPath + "\\experiment3\\exp3\\allNormal-allTesting\\run1_6rtu(1)_ef_oh_norm.csv";
+        int labelIndex = 65;// from 0
         int KNC = 50;
         double percentage = 1;
         int batchSize = 1000;
+        double myDc = 0.2;
         DensityPeakClusterStrictDistributed dpcsd = new DensityPeakClusterStrictDistributed();
-        dpcsd.init(trainFilePath, labelIndex, batchSize, percentage);
+        dpcsd.init(trainFilePath, labelIndex, batchSize, percentage, myDc);
         dpcsd.train();
-//        String modelFilePath = desktopPath + "\\test2\\dealed\\dhcsd_"+dpcsd.getInputSamples().size()+"_"+batchSize+"_"+dpcsd.getDc()+".model";
-//        ModelIO.outputModel(modelFilePath, dpcsd);
-//        DensityPeakClusterStrictDistributed dhcsd = (DensityPeakClusterStrictDistributed) ModelIO.inputModel(modelFilePath);
+//        String trainingResultPath = desktopPath + "\\experiment3\\exp3\\allNormal-allTesting\\all_data_result_dpcsd_myDc-"+myDc+ ".csv";
+//        dpcsd.output(dpcsd.getInputSamples(), trainingResultPath);
 
-        String testFileName = "all_attacks_result_lof_KNN-35_CV-2.0_outlier-6";
-        String testFilePath = desktopPath + "\\experiment\\exp2\\full\\KNN-35_CV-2.0\\"+ testFileName +".csv";
+        String testFileName = "all_attacks";
+        String testFilePath = desktopPath + "\\experiment3\\exp3\\allNormal-allTesting\\"+ testFileName +".csv";
         int Maximum = 50;
         List<Sample> testingSamples = dpcsd.predict(testFilePath, labelIndex, KNC, Maximum);
 //        List<Sample> testingSamples = dpcsd.test(testFilePath, labelIndex, KNC);
 
         dpcsd.evaluate(testingSamples);
-        String outPathResult = desktopPath + "\\experiment\\exp2\\full\\KNN-35_CV-2.0\\"+ testFileName +"_result_dpcsd_Max-" + Maximum + ".csv";
+        String outPathResult = desktopPath + "\\experiment3\\exp3\\allNormal-allTesting\\"+ testFileName +"_result_dpcsd_myDc-"+myDc+"_Max-" + Maximum + ".csv";
         dpcsd.output(testingSamples, outPathResult);
 
 //        System.out.println("KNC: " + KNC);
@@ -105,55 +119,50 @@ public class AttackClassificationApplication  implements CommandLineRunner {
     public void callLOF_AD () throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
 
-        int KNN = 35;
+        int KNN = 10;
         int classIndex = 0;
         boolean includeHeader = true;
         String[] options = new String[]{"-R", "first-last"};
-        double cutOffValue = 18;
+        double cutOffValue = 2;
         /* Build LOF model*/
         LOF_AD lofAD = new LOF_AD(0);
-        String trainFilePath = desktopPath + "\\experiment\\exp2\\encoded\\attacks_encode_44-8_result_lof_KNN-35_CV-2.0\\run1_6rtu(1)_ef_oh_norm_encode_44-8.csv";
+        String trainFilePath = desktopPath + "\\experiment3\\exp2\\full\\run1_6rtu(1)_ef_oh_norm.csv";
         lofAD.train(trainFilePath, KNN, KNN, classIndex, includeHeader, options);
 
         /* Evaluate training data*/
         lofAD.evaluateTrainingData(cutOffValue, KNN, true);
-        String outPathOutliers = desktopPath + "\\experiment\\exp2\\encoded\\attacks_encode_44-8_result_lof_KNN-35_CV-2.0\\run1_6rtu(1)_ef_oh_norm_encode_44-8_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier.csv";
-        String outPathOutliersNo = desktopPath + "\\experiment\\exp2\\encoded\\attacks_encode_44-8_result_lof_KNN-35_CV-2.0\\run1_6rtu(1)_ef_oh_norm_encode_44-8_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier_no.csv";
+        String outPathOutliers = desktopPath + "\\experiment3\\exp2\\full\\run1_6rtu(1)_ef_oh_norm_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier.csv";
+        String outPathOutliersNo = desktopPath + "\\experiment3\\exp2\\full\\run1_6rtu(1)_ef_oh_norm_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier_no.csv";
         lofAD.outputOutliers(outPathOutliers, outPathOutliersNo);
 
-//        String modelPath = desktopPath + "\\test2\\dealed\\LOF_KNN-"+ KNN +"_CV-"+ cutOffValue +".model";
-        /* Save LOF model
-        lofAD.saveLOF(modelPath);*/
-        /* Read LOF model
-        LOF lof = LOF_AD.readLOF(modelPath);*/
-
-        /* Test testing data
-        String testFileName = "attacks_encode_44-8";
-        String testFilePath = desktopPath + "\\experiment\\exp2\\encoded\\attacks_encode_44-8_result_lof_KNN-35_CV-2.0\\" + testFileName + ".csv";
+        /* Test testing data*/
+        String testFileName = "all_attacks";
+        String testFilePath = desktopPath + "\\experiment3\\exp2\\full\\" + testFileName + ".csv";
         lofAD.test(testFilePath, classIndex, includeHeader, options);
         lofAD.evaluate(cutOffValue);
-        String outPathResult = desktopPath + "\\experiment\\exp2\\encoded\\attacks_encode_44-8_result_lof_KNN-35_CV-2.0\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
-        String outPathInner = desktopPath + "\\experiment\\exp2\\encoded\\attacks_encode_44-8_result_lof_KNN-35_CV-2.0\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_inner.csv";
-        String outPathInnerNo = desktopPath + "\\experiment\\exp2\\encoded\\attacks_encode_44-8_result_lof_KNN-35_CV-2.0\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_inner_no.csv";
-        String outPathOutlier = desktopPath + "\\experiment\\exp2\\encoded\\attacks_encode_44-8_result_lof_KNN-35_CV-2.0\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier.csv";
-        String outPathOutlierNo = desktopPath + "\\experiment\\exp2\\encoded\\attacks_encode_44-8_result_lof_KNN-35_CV-2.0\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier_no.csv";
-        lofAD.output(outPathResult, outPathInner, outPathInnerNo, outPathOutlier, outPathOutlierNo, cutOffValue);*/
-
-//        Instances predictedData = LOF_AD.test(lof, testFilePath, classIndex, includeHeader, options);
-//        LOF_AD.evaluate(predictedData, testFilePathNo, testFilePathLabel, cutOffValue);
+        String outPathResult = desktopPath + "\\experiment3\\exp2\\full\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +".csv";
+        String outPathInner = desktopPath + "\\experiment3\\exp2\\full\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_inner.csv";
+        String outPathInnerNo = desktopPath + "\\experiment3\\exp2\\full\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_inner_no.csv";
+        String outPathOutlier = desktopPath + "\\experiment3\\exp2\\full\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier.csv";
+        String outPathOutlierNo = desktopPath + "\\experiment3\\exp2\\full\\" + testFileName + "_result_lof_KNN-"+ KNN +"_CV-"+ cutOffValue +"_outlier_no.csv";
+//        String outPathInner = null;
+//        String outPathInnerNo = null;
+//        String outPathOutlier = null;
+//        String outPathOutlierNo = null;
+        lofAD.output(outPathResult, outPathInner, outPathInnerNo, outPathOutlier, outPathOutlierNo, cutOffValue);
     }
 
     public void callSAE_AD () throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        int first = 78;
-        int second = 44;
-        int third = 10;
+        int first = 20;
+        int second = 10;
+        int third = 2;
         SAE_AD saeAD = new SAE_AD(first, second, third, 0);
-        String trainFilePath = desktopPath + "\\experiment\\exp2\\encoded\\run1_6rtu(1)_ef_oh_norm.csv";
-        String encodeFileName = "run1_6rtu(1)_ef_oh_norm";
-        String encodeFilePath = desktopPath + "\\experiment\\exp2\\encoded\\"+ encodeFileName +".csv";
-        String outPathEncode = desktopPath + "\\experiment\\exp2\\encoded\\"+ encodeFileName + "_encode_" + second + "-" +third +".csv";
-        int labelIndex = 78;
+        String trainFilePath = desktopPath + "\\experiment2\\exp1\\IT\\run1_6rtu(1)_ef_oh_norm.csv";
+        String encodeFileName = "run1_6rtu(1) && attacks";
+        String encodeFilePath = desktopPath + "\\experiment2\\exp1\\IT\\"+ encodeFileName +".csv";
+        String outPathEncode = desktopPath + "\\experiment2\\exp1\\IT\\"+ encodeFileName + "_encode_" + second + "-" +third +".csv";
+        int labelIndex = 20;
         int numClasses = 1;
         int batchSizeTraining = 100;
         int batchSizeTesting = 100;
@@ -168,12 +177,21 @@ public class AttackClassificationApplication  implements CommandLineRunner {
     public void callPreprocessor () throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
 
-        /* Combine csv files
-        String allPath = desktopPath + "\\experiment\\all attacks\\dealed\\";
+        /* Combine csv files*/
+        String allPath = desktopPath + "\\experiment3\\all attacks\\dealed\\";
         String allName = "all_attack_file";
         boolean includeHeader = true;
-        String outputPath = desktopPath + "\\experiment\\all attacks\\dealed\\all_attacks.csv";
-        preprocessor.combineCSVFiles (allPath, allName, includeHeader, outputPath);*/
+        String outputPath = desktopPath + "\\experiment3\\all attacks\\dealed\\all_attacks.csv";
+        preprocessor.combineCSVFiles (allPath, allName, includeHeader, outputPath);
+
+        /* Transform Data By ICSSession
+        String innerPath = desktopPath + "\\experiment3\\all attacks\\run1_6rtu(1).csv";
+        Set<String> innerIpSet = preprocessor.getIpSet(innerPath, true);
+        String allPath = desktopPath + "\\experiment3\\all attacks\\";
+        String allName = "all files.csv";
+        int classIndex = 0;
+        boolean includeHeader = true;
+        preprocessor.transformSCADADataInICSSession(innerIpSet, allPath, allName, classIndex, includeHeader);*/
 
         /* Transform Data By ICS
         String innerPath = desktopPath + "\\experiment\\all attacks\\run1_6rtu(1).csv";
@@ -230,52 +248,49 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
         /*honeypot
         String filename = "modbus_2017-2018";
-        String inPath = desktopPath + "\\experiment\\honeypot\\"+ filename +".pcap";
-        String orgPath = desktopPath + "\\experiment\\honeypot\\honeypot-info.csv";
+        String inPath = desktopPath + "\\experiment2\\honeypot\\"+ filename +".pcap";
+        String orgPath = desktopPath + "\\experiment2\\honeypot\\honeypot-info.csv";
         int data_class = 14;
         Map<String, List<String>> orgModificationsMap = honeypotData.convertData(inPath, orgPath);
         for(Map.Entry<String, List<String>> entry : orgModificationsMap.entrySet()){
-            String outPath = desktopPath + "\\experiment\\honeypot\\"+ entry.getKey() +".csv";
-            String outPathNo = desktopPath + "\\experiment\\honeypot\\"+ entry.getKey() +"_no.csv";
-            extractorICSADData.extract(entry.getValue(), outPath, outPathNo, data_class++);
+            String outPath = desktopPath + "\\experiment2\\honeypot\\"+ entry.getKey() +".csv";
+            String outPathNo = desktopPath + "\\experiment2\\honeypot\\"+ entry.getKey() +"_no.csv";
+//            extractorICSADData.extract(entry.getValue(), outPath, outPathNo, data_class++);
+            extractorICSSessionADData.extract(entry.getValue(), outPath, outPathNo, data_class++);
         }*/
 
         /* scanning tools
         String filename = "scadascan-master";
-        String inPath = desktopPath + "\\experiment\\scanning tools\\"+ filename +".pcap";
-        String outPath = desktopPath + "\\experiment\\scanning tools\\"+ filename +".csv";
-        String outPathNo = desktopPath + "\\experiment\\scanning tools\\"+ filename +"_no.csv";
+        String inPath = desktopPath + "\\experiment3\\scanning tools\\"+ filename +".pcap";
+        String outPath = desktopPath + "\\experiment3\\scanning tools\\"+ filename +".csv";
+        String outPathNo = desktopPath + "\\experiment3\\scanning tools\\"+ filename +"_no.csv";
         int data_class = 13;
-        List<String> stringFlowList = scanningToolData.convertData(inPath);
-        extractorICSADData.extract(stringFlowList, outPath, outPathNo, data_class);*/
+        List<String> stringList = scanningToolData.convertData(inPath);
+//        extractorICSADData.extract(stringFlowList, outPath, outPathNo, data_class);
+        extractorICSSessionADData.extract(stringList, outPath, outPathNo, data_class);*/
 
-        /* channel_4d_12s*/
+        /* channel_4d_12s
         String filename = "channel_4d_12s(2)";
-        String inPath = desktopPath + "\\experiment\\SCADA\\"+ filename +".pcap";
-        String outPath = desktopPath + "\\experiment\\SCADA\\"+ filename +".csv";
-        String outPathNo = desktopPath + "\\experiment\\SCADA\\"+ filename +"_no.csv";
+        String inPath = desktopPath + "\\experiment2\\SCADA\\"+ filename +".pcap";
+        String outPath = desktopPath + "\\experiment2\\SCADA\\"+ filename +".csv";
+        String outPathNo = desktopPath + "\\experiment2\\SCADA\\"+ filename +"_no.csv";
         int data_class = 6;
-        List<String> stringFlowList = scadaData.convertData(inPath);
-        extractorICSADData.extract(stringFlowList, outPath, outPathNo, data_class);
+        List<String> stringList = scadaData.convertData(inPath);
+//        extractorICSADData.extract(stringFlowList, outPath, outPathNo, data_class);
+        extractorICSSessionADData.extract(stringList, outPath, outPathNo, data_class);*/
 
         /* has label file
-        String filename = "moving_two_files_modbus_6RTU";
-        String inPath = desktopPath + "\\experiment\\SCADA\\"+ filename +".pcap";
-        String inPathLabel = desktopPath + "\\experiment\\SCADA\\"+ filename +"_labeled.csv";
-        String outPath = desktopPath + "\\experiment\\SCADA\\"+ filename +".csv";
-        String outPathNo = desktopPath + "\\experiment\\SCADA\\"+ filename +"_no.csv";
+        String filename = "send_a_fake_command_modbus_6RTU_with_operate";
+        String inPath = desktopPath + "\\experiment2\\SCADA\\"+ filename +".pcap";
+        String inPathLabel = desktopPath + "\\experiment2\\SCADA\\"+ filename +"_labeled.csv";
+        String outPath = desktopPath + "\\experiment2\\SCADA\\"+ filename +".csv";
+        String outPathNo = desktopPath + "\\experiment2\\SCADA\\"+ filename +"_no.csv";
 //        extractorADData.extract(inPath, inPathLabel, outPath, outPathNo);
-        extractorICSADData.extract(inPath, inPathLabel, outPath, outPathNo);*/
-
-        /* has no label file
-        String inPath = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operate.pcap";
-        String outPath = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operateqqq.csv";
-        String outPathNo = desktopPath + "\\test1\\exploit_ms08_netapi_modbus_6RTU_with_operate_noqqq.csv";
-        int data_class = 0;
-//        extractorADData.extract(inPath, outPath, outPathNo, data_class);
-        extractorICSADData.extract(inPath, outPath, outPathNo, data_class);*/
+//        extractorICSADData.extract(inPath, inPathLabel, outPath, outPathNo);
+        extractorICSSessionADData.extract(inPath, inPathLabel, outPath, outPathNo);*/
     }
 
+    /*
     public void callDPCS () throws IOException{
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
         String trainFilePathLabel = desktopPath + "\\test2\\dealed\\run1_6rtu(1)_ef_oh_norm.csv";
@@ -297,5 +312,5 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 
         System.out.println("KNC: " + KNC);
         System.out.println("percentage: " + percentage);
-    }
+    }*/
 }

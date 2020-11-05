@@ -32,7 +32,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
     private Map<Integer, Sample> clusterCenterMap; // centers of clusters <clusterIndex, center-sample>
 
 
-    public void init (String trainFilePath, int labelIndex, int batchSize, double percentage) throws IOException, InterruptedException {
+    public void init (String trainFilePath, int labelIndex, int batchSize, double percentage, double myDc) throws IOException, InterruptedException {
         log.info("Start to init.");
         this.batchSize = batchSize;
         /* Load labeled and unlabeled training data */
@@ -68,8 +68,8 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         for(DensityPeakClusterStrict dpcs : dpcsList){
             dcTotal += dpcs.getDc();
         }
-        this.dc = dcTotal/dpcsList.size();
-        this.dc = 0.25;
+//        this.dc = dcTotal/dpcsList.size();
+        this.dc = myDc;
         log.info("Get dc:" + dc);
         for(DensityPeakClusterStrict dpcs : dpcsList){
             dpcs.setDc(dc);
@@ -224,6 +224,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
             List<Integer> sampleIdList = combinedClusterToSampleMap.get(centerId);
             for(int a=0; a<sampleIdList.size(); a++){
                 sampleToClusterMap.put(sampleIdList.get(a), masterId);
+                inputSamples.get(sampleIdList.get(a)).setPredictLabel(masterId+"");
             }
             if(clusterToSampleMap.containsKey(masterId)){
                 clusterToSampleMap.get(masterId).addAll(sampleIdList);
@@ -344,7 +345,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         for(int a=0; a<testingSamples.size(); a++){
             Sample sample = testingSamples.get(a);
             Pair<Integer, Double> nearestCenter = findNearestCenter(sample, dc, KNC);
-            System.out.println(nearestCenter.getRight());
+//            System.out.println(nearestCenter.getRight());
             int centerId = nearestCenter.getKey();
             if(centerId != -1){
                 sample.setPredictLabel(clustersLabels.get(centerId)+"");
@@ -374,11 +375,11 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
                 double du = dc / Maximum * wc;
                 double centerDistance = twoSampleDistance(sample, clusterCenterMap.get(centerId));
                 if(centerDistance > du){// update dpcsd with a new sample
-                    System.out.println("update: " + (++times_update));
+//                    System.out.println("update: " + (++times_update));
                     update(sample, centerId);
                 }
             } else {// The sample doesn't belong to any existing classes, and then create a new cluster for it
-                System.out.println("create: " + (++times_create));
+//                System.out.println("create: " + (++times_create));
                 sample.setPredictLabel(currentLabel+"");
                 createNewCluster(sample, currentLabel++);
             }
@@ -478,11 +479,12 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
             }
         }
         clustersLabels.put(centerId, data_class);
-        /*update clusterCenterMap*/
+        /*update clusterCenterMap and sample labels*/
         List<Integer> clusterEx = clusterToSampleMap.get(centerId);
         int numColumnsEx = inputSamples.get(0).getAttributes().length;
         double[] totalValuesEx = new double[numColumnsEx];
         for(int a=0; a<clusterEx.size(); a++){
+            inputSamples.get(clusterEx.get(a)).setPredictLabel(data_class+"");
             for(int b=0; b<numColumnsEx; b++){
                 totalValuesEx[b] += inputSamples.get(clusterEx.get(a)).getAttributes()[b];
             }

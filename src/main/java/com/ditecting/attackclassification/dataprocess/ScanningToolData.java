@@ -28,8 +28,8 @@ public class ScanningToolData {
 
     public List<String> convertData (String inPath) throws InterruptedException {
         Map<String, String> ipMap = new HashMap<>();
-        ipMap.put("202.199.13.224", "192.168.1.100");
-        ipMap.put("202.199.13.129", "192.168.1.100");
+//        ipMap.put("202.199.13.224", "192.168.1.100");
+//        ipMap.put("202.199.13.129", "192.168.1.100");
         ipMap.put("1.224.102.6", "192.168.1.101");
         ipMap.put("1.225.67.4", "192.168.1.102");
         ipMap.put("1.230.226.50", "192.168.1.103");
@@ -37,16 +37,15 @@ public class ScanningToolData {
         ipMap.put("1.252.63.42", "192.168.1.105");
 
         loadHolder.load(inPath);
-        List<String> stringFlowList = pluginCachePool.getAllString();
+        List<String> stringList = pluginCachePool.getAllString();
         List<String> modificationList = new ArrayList<>();
-        for(String stringFlow : stringFlowList){
-            JsonObject jsonObject = JsonParser.parseString(stringFlow).getAsJsonObject();
+        for(String str : stringList){
+            JsonObject jsonObject = JsonParser.parseString(str).getAsJsonObject();
             String srcIp = jsonObject.get("srcIp").getAsString();
             String dstIp = jsonObject.get("dstIp").getAsString();
             if(srcIp.equals("202.199.13.224") || srcIp.equals("202.199.13.129")){//ignore unrelated data
-                String modification1 = stringFlow.replaceAll(srcIp, ipMap.get(srcIp));
-                String modification2 = modification1.replaceAll(dstIp, ipMap.get(dstIp));
-                modificationList.add(modification2);
+                String modification1 = str.replaceAll(dstIp, ipMap.get(dstIp));
+                modificationList.add(modification1);
             }
         }
         return modificationList;
