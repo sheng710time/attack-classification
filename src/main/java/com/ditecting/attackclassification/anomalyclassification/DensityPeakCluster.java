@@ -64,9 +64,9 @@ public class DensityPeakCluster {
 	public static void main(String[] args) throws IOException {
 		//读取文件数据
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        String filename = desktopPath + "\\experiment3\\exp4\\DPC\\all_data.csv";
+        String filename = desktopPath + "\\test\\all attacks\\dealed\\modicon-info_ef_oh_norm.csv";
 		DataReader reader = new DataReader();
-        reader.readData(filename,65);
+        reader.readData(filename,28);
 		DensityPeakCluster cluster = new DensityPeakCluster(reader.getSamples());
 		cluster.calPairDistance();
 //		double dc = cluster.findDC();//dc的确定采用了类似二分查找的方法，具有一定的随机性
@@ -76,8 +76,9 @@ public class DensityPeakCluster {
 		cluster.calGamma();
 
 		/*聚类并输出结果*/
-		cluster.clustering(201);
-		String outputPath = desktopPath + "\\experiment3\\exp4\\DPC\\all_data_result_dpc.csv";
+		int centerNum = 100;
+		cluster.clustering(centerNum);
+		String outputPath = desktopPath + "\\experiment3\\exp4\\DPC\\all_data_result_dpc_centerNum-"+ centerNum +".csv";
 		cluster.outputCluster(outputPath, cluster.clusterMap );
 	}
 

@@ -310,10 +310,15 @@ public class Preprocessor {
         Instances instAll = FileLoader.loadInstancesFromCSV(tempFileName, classIndex, includeHeader, optionsNominal);
 
         /* Discretize continuous data (eq freq) : numeric attr->nominal attr including data types and values */
+        Discretize discretizeEW = new Discretize();
+        discretizeEW.setOptions(new String[]{"-B", "10", "-R", "17-24"});//"-F" equal frequency method for discretization
+        discretizeEW.setInputFormat(instAll);
+        Instances instAll_EW = Filter.useFilter(instAll, discretizeEW);
+
         Discretize discretizeEF = new Discretize();
-        discretizeEF.setOptions(new String[]{"-B", "100", "-R", "3-last", "-F"});//"-F" equal frequency method for discretization
-        discretizeEF.setInputFormat(instAll);
-        Instances instAll_EF = Filter.useFilter(instAll, discretizeEF);
+        discretizeEF.setOptions(new String[]{"-B", "100", "-R", "3-16, 25-30", "-F"});//"-F" equal frequency method for discretization
+        discretizeEF.setInputFormat(instAll_EW);
+        Instances instAll_EF = Filter.useFilter(instAll_EW, discretizeEF);
 
         /* One-hot encode unordered nominal data*/
         NominalToBinary nominalToBinary = new NominalToBinary();

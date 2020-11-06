@@ -345,7 +345,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         for(int a=0; a<testingSamples.size(); a++){
             Sample sample = testingSamples.get(a);
             Pair<Integer, Double> nearestCenter = findNearestCenter(sample, dc, KNC);
-//            System.out.println(nearestCenter.getRight());
+            System.out.println(nearestCenter.getRight());
             int centerId = nearestCenter.getKey();
             if(centerId != -1){
                 sample.setPredictLabel(clustersLabels.get(centerId)+"");
