@@ -1,6 +1,7 @@
-package com.ditecting.attackclassification.anomalyclassification;
+package com.ditecting.attackclassification.competingmethods;
 
-import com.ditecting.attackclassification.anomalyclassification.showdata.ShowJFreeChart;
+import com.ditecting.attackclassification.anomalyclassification.DataReader;
+import com.ditecting.attackclassification.anomalyclassification.Sample;
 import com.ditecting.attackclassification.dataprocess.CSVUtil;
 
 import javax.swing.filechooser.FileSystemView;
@@ -64,7 +65,7 @@ public class DensityPeakCluster {
 	public static void main(String[] args) throws IOException {
 		//读取文件数据
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        String filename = desktopPath + "\\test\\all attacks\\dealed\\modicon-info_ef_oh_norm.csv";
+        String filename = desktopPath + "\\experiment5\\exp4\\FSFDP\\all_data.csv";
 		DataReader reader = new DataReader();
         reader.readData(filename,28);
 		DensityPeakCluster cluster = new DensityPeakCluster(reader.getSamples());
@@ -78,7 +79,7 @@ public class DensityPeakCluster {
 		/*聚类并输出结果*/
 		int centerNum = 100;
 		cluster.clustering(centerNum);
-		String outputPath = desktopPath + "\\experiment3\\exp4\\DPC\\all_data_result_dpc_centerNum-"+ centerNum +".csv";
+		String outputPath = desktopPath + "\\experiment5\\exp4\\FSFDP\\all_data_result_dpc_centerNum-"+ centerNum +".csv";
 		cluster.outputCluster(outputPath, cluster.clusterMap );
 	}
 
