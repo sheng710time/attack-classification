@@ -99,6 +99,7 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 //        String trainingResultPath = desktopPath + "\\experiment3\\exp3\\allNormal-allTesting\\all_data_result_dpcsd_myDc-"+myDc+ ".csv";
 //        dpcsd.output(dpcsd.getInputSamples(), trainingResultPath);
 
+
         String testFileName = "all_attacks";
         String testFilePath = desktopPath + "\\experiment5\\exp1\\flow-ICS\\"+ testFileName +".csv";
         int Maximum = 100;
