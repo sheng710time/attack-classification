@@ -58,70 +58,70 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 //        callPreprocessor();
 
         /* SAE */
-//        callSAE_AD();
+//        for(int a=14; a<=22; a+=2){
+//            for(int b=4; b<=10; b+=2){
+//                callSAE_AD(a, b);
+//            }
+//        }
 
         /* DPCSD */
 //        callDPCSD();
 
         /* Evaluator*/
-//        callEvaluator();
+        callEvaluator();
 
         System.out.println("");
     }
 
     public void callEvaluator () throws IOException {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        /* Evaluate our method*/
-        int labelIndex = 28;
-//        String innerPath = desktopPath + "\\experiment4\\exp3\\allNormal-allTesting\\all_attacks_result_lof_KNN-15_CV-2.0_inner.csv";
-        String innerPath = null;
-        String outlierResultsPath = desktopPath + "\\experiment5\\exp1\\session-ICS\\all_attacks_result_dpcsd_myDc-0.2_Max-100.csv";
-        Evaluator.evaluate(innerPath, labelIndex, outlierResultsPath);
+        /* Evaluate our method
+        String resultsPath = desktopPath + "\\experiment5\\exp3\\all_attacks_encode_14-6_result_dpcsd_myDc-0.03_Max-2.csv";
+        Evaluator.evaluate(resultsPath);*/
 
-        /* Evaluate other methods
+        /* Evaluate other methods*/
         int trainingIndex = 4680;
-        String outlierResultsPath = desktopPath + "\\experiment5\\exp4\\DBSCAN\\all_data_result_DBSCAN_eps-0.1_minps-2.csv";
-        Evaluator.evaluate(trainingIndex, outlierResultsPath);*/
+        String outlierResultsPath = desktopPath + "\\experiment5\\exp4\\HC\\all_data_encode_14-6_result_HC_clusterNum-47.csv";
+        Evaluator.evaluate(trainingIndex, outlierResultsPath);
 
     }
 
     public void callDPCSD () throws IOException, InterruptedException {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        String trainFilePath = desktopPath + "\\experiment5\\exp1\\flow-ICS\\run1_6rtu(1)_ef_oh_norm.csv";
-        int labelIndex = 20;// from 0
+        String trainFilePath = desktopPath + "\\experiment5\\exp3\\run1_6rtu(1)_ef_oh_norm_encode_14-6.csv";
+        int labelIndex = 6;// from 0
         int KNC = 50;
         double percentage = 1;
         int batchSize = 1000;
-        double myDc = 0.2;
+        double myDc = 0.03;
         DensityPeakClusterStrictDistributed dpcsd = new DensityPeakClusterStrictDistributed();
         dpcsd.init(trainFilePath, labelIndex, batchSize, percentage, myDc);
         dpcsd.train();
 //        String trainingResultPath = desktopPath + "\\experiment3\\exp3\\allNormal-allTesting\\all_data_result_dpcsd_myDc-"+myDc+ ".csv";
 //        dpcsd.output(dpcsd.getInputSamples(), trainingResultPath);
 
-
-        String testFileName = "all_attacks";
-        String testFilePath = desktopPath + "\\experiment5\\exp1\\flow-ICS\\"+ testFileName +".csv";
-        int Maximum = 100;
+        String testFileName = "all_attacks_encode_14-6";
+        String testFilePath = desktopPath + "\\experiment5\\exp3\\"+ testFileName +".csv";
+        int Maximum = 2;
         List<Sample> testingSamples = dpcsd.predict(testFilePath, labelIndex, KNC, Maximum);
 //        List<Sample> testingSamples = dpcsd.test(testFilePath, labelIndex, KNC);
 
         dpcsd.evaluate(testingSamples);
-        String outPathResult = desktopPath + "\\experiment5\\exp1\\flow-ICS\\"+ testFileName +"_result_dpcsd_myDc-"+myDc+"_Max-" + Maximum + ".csv";
+        String outPathResult = desktopPath + "\\experiment5\\exp3\\"+ testFileName +"_result_dpcsd_myDc-"+myDc+"_Max-" + Maximum + ".csv";
         dpcsd.output(testingSamples, outPathResult);
     }
 
-    public void callSAE_AD () throws Exception {
+    public void callSAE_AD (int second, int third) throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        int first = 20;
-        int second = 10;
-        int third = 2;
+        int first = 28;
+//        int second = 18;
+//        int third = 6;
         SAE_AD saeAD = new SAE_AD(first, second, third, 0);
-        String trainFilePath = desktopPath + "\\experiment2\\exp1\\IT\\run1_6rtu(1)_ef_oh_norm.csv";
-        String encodeFileName = "run1_6rtu(1) && attacks";
-        String encodeFilePath = desktopPath + "\\experiment2\\exp1\\IT\\"+ encodeFileName +".csv";
-        String outPathEncode = desktopPath + "\\experiment2\\exp1\\IT\\"+ encodeFileName + "_encode_" + second + "-" +third +".csv";
-        int labelIndex = 20;
+        String trainFilePath = desktopPath + "\\experiment5\\exp2\\run1_6rtu(1)_ef_oh_norm.csv";
+        String encodeFileName = "all_attacks";
+        String encodeFilePath = desktopPath + "\\experiment5\\exp2\\"+ encodeFileName +".csv";
+        String outPathEncode = desktopPath + "\\experiment5\\exp2\\"+ encodeFileName + "_encode_" + second + "-" +third +".csv";
+        int labelIndex = 28;
         int numClasses = 1;
         int batchSizeTraining = 100;
         int batchSizeTesting = 100;

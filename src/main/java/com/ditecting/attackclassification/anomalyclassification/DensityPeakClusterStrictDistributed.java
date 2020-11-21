@@ -364,6 +364,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         testingReader.readData(testFilePath,testLabelIndex);
         List<Sample> testingSamples = testingReader.getSamples();
         int times_update =0;
+        int times_non_update =0;
         int times_create =0;
         for(int a=0; a<testingSamples.size(); a++){
             Sample sample = testingSamples.get(a);
@@ -373,10 +374,13 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
                 sample.setPredictLabel(clustersLabels.get(centerId)+"");
                 double wc = clusterToSampleMap.get(centerId).size()<Maximum ? clusterToSampleMap.get(centerId).size() : Maximum;
                 double du = dc / Maximum * wc;
+//                double du = 0;
                 double centerDistance = twoSampleDistance(sample, clusterCenterMap.get(centerId));
                 if(centerDistance > du){// update dpcsd with a new sample
-//                    System.out.println("update: " + (++times_update));
+                    times_update++;
                     update(sample, centerId);
+                }else{
+                    times_non_update++;
                 }
             } else {// The sample doesn't belong to any existing classes, and then create a new cluster for it
 //                System.out.println("create: " + (++times_create));
@@ -384,6 +388,8 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
                 createNewCluster(sample, currentLabel++);
             }
         }
+        System.out.println("update: " + times_update);
+        System.out.println("non_update: " + times_non_update);
         log.info("End to predict.");
         return testingSamples;
     }

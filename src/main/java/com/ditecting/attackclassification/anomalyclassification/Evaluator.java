@@ -9,34 +9,18 @@ public class Evaluator {
 
     /**
      *
-     * @param innerPath
-     * @param testLabelIndex
      * @param outlierResultsPath
      */
-	public static void evaluate(String innerPath, int testLabelIndex, String outlierResultsPath) throws IOException {
-        List<Sample> innerSamples = new ArrayList<>();
-	    if(innerPath != null){
-            DataReader innerReader = new DataReader();
-            innerReader.readData(innerPath, testLabelIndex);
-            innerSamples.addAll(innerReader.getSamples());
-        }
+	public static void evaluate(String outlierResultsPath) throws IOException {
         List<String[]> outlierResults = CSVUtil.readMulti(outlierResultsPath, true);
 
-        double num_total = innerSamples.size() + outlierResults.size();// total number of all testing data
+        double num_total = outlierResults.size();// total number of all testing data
         double num_total_P = 0;// total number of all testing attack data
         double num_TP = 0;// number of detected testing attack data
         double num_TN = 0;// number of detected testing attack data
         double num_total_T = 0;// total number of correctly classified testing data
         double num_new_cluster = 0;// number of newly created clusters
         /* calculate num_total_P, num_TP and num_total_T*/
-        for (int a = 0; a < innerSamples.size(); a++) {
-            if (Double.parseDouble(innerSamples.get(a).getLabel()) > 0) {
-                num_total_P++;
-            }else {
-                num_TN++;
-                num_total_T++;
-            }
-        }
         for (int b = 0; b < outlierResults.size(); b++) {
             if (Double.parseDouble(outlierResults.get(b)[1]) > 0) {
                 num_total_P++;

@@ -65,21 +65,21 @@ public class DensityPeakCluster {
 	public static void main(String[] args) throws IOException {
 		//读取文件数据
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        String filename = desktopPath + "\\experiment5\\exp4\\FSFDP\\all_data.csv";
+        String filename = desktopPath + "\\experiment5\\exp4\\FSFDP\\all_data_encode_14-6.csv";
 		DataReader reader = new DataReader();
-        reader.readData(filename,28);
+        reader.readData(filename,6);
 		DensityPeakCluster cluster = new DensityPeakCluster(reader.getSamples());
 		cluster.calPairDistance();
-		double dc = cluster.findDC();//dc的确定采用了类似二分查找的方法，具有一定的随机性
-//        double dc = 0.2;
+//		double dc = cluster.findDC();//dc的确定采用了类似二分查找的方法，具有一定的随机性
+        double dc = 0.001;
 		cluster.calRhoCK(dc);//截断距离
 		cluster.calDelta();
 		cluster.calGamma();
 
 		/*聚类并输出结果*/
-		int centerNum = 42;
+		int centerNum = 47;
 		cluster.clustering(centerNum);
-		String outputPath = desktopPath + "\\experiment5\\exp4\\FSFDP\\all_data_result_dpc_dc-"+ dc+"_centerNum-"+ centerNum +".csv";
+		String outputPath = desktopPath + "\\experiment5\\exp4\\FSFDP\\all_data_encode_14-6_result_dpc_dc-"+ dc+"_centerNum-"+ centerNum +".csv";
 		cluster.outputCluster(outputPath, cluster.clusterMap );
 	}
 
@@ -431,7 +431,7 @@ public class DensityPeakCluster {
 		double tmpMin = minDistance;
 		double dc = 0.5 * (tmpMax + tmpMin);
 		int dd=0;
-		for(int iteration = 0; iteration < 10; iteration ++) {
+		for(int iteration = 0; iteration < 100; iteration ++) {
 			int neighbourNum = 0;
 			for(Entry<String, Double> dis : pairDistanceMap.entrySet()) {
 				if(dis.getValue() < dc) neighbourNum ++;
