@@ -52,7 +52,7 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         System.out.println("AttackClassificationApplication !!!");
 
         /* Extractor */
-//        callExtractor();
+        callExtractor();
 
         /* Preprocessor */
 //        callPreprocessor();
@@ -61,7 +61,7 @@ public class AttackClassificationApplication  implements CommandLineRunner {
 //        callSAE_AD();
 
         /* DPCSD */
-        callDPCSD();
+//        callDPCSD();
 
         /* Evaluator*/
 //        callEvaluator();
@@ -206,7 +206,7 @@ public class AttackClassificationApplication  implements CommandLineRunner {
     public void callExtractor () throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
 
-        /* scanning tools
+        /* scanning tools*/
         String filename = "scadascan-master";
         String inPath = desktopPath + "\\experiment5\\exp1\\flow-ICS\\scanning tools\\"+ filename +".pcap";
         String outPath = desktopPath + "\\experiment5\\exp1\\flow-ICS\\scanning tools\\"+ filename +".csv";
@@ -214,7 +214,7 @@ public class AttackClassificationApplication  implements CommandLineRunner {
         int data_class = 13;
         List<String> stringList = scanningToolData.convertData(inPath);
         extractorICSADData.extract(stringList, outPath, outPathNo, data_class);
-//        extractorICSSessionADData.extract(stringList, outPath, outPathNo, data_class);*/
+//        extractorICSSessionADData.extract(stringList, outPath, outPathNo, data_class);
 
         /* channel_4d_12s
         String filename = "channel_4d_12s(2)";

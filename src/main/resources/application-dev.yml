@@ -1,3 +1,8 @@
+pcap4j:
+  extension:
+    util:
+      tsharkPath: K:\Wireshark\tshark.exe
+
 honeyeye:
   system:
     inputingMode: 2 # 1:capture, 2:load
