@@ -357,6 +357,15 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         return testingSamples;
     }
 
+    /**
+     *
+     * @param testFilePath
+     * @param testLabelIndex
+     * @param KNC
+     * @param Maximum >=2
+     * @return
+     * @throws IOException
+     */
     public List<Sample> predict (String testFilePath, int testLabelIndex, int KNC, int Maximum) throws IOException {
         log.info("Start to predict.");
         int currentLabel = 1;
@@ -372,7 +381,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
             int centerId = nearestCenter.getKey();
             if(centerId != -1){
                 sample.setPredictLabel(clustersLabels.get(centerId)+"");
-                double wc = clusterToSampleMap.get(centerId).size()<Maximum ? clusterToSampleMap.get(centerId).size() : Maximum;
+                double wc = clusterToSampleMap.get(centerId).size()<Maximum ? clusterToSampleMap.get(centerId).size() : Maximum-1;
                 double du = dc / Maximum * wc;
 //                double du = 0;
                 double centerDistance = twoSampleDistance(sample, clusterCenterMap.get(centerId));
