@@ -26,7 +26,7 @@ public class KmeansClassification {
         String[] options = new String[]{"-R", "first-last"};
         Instances instancesTrain = FileLoader.loadInstancesFromCSV(trainFilePath,classIndex, includeHeader, options);
 
-        int centerNum = 47;
+        int centerNum = 169;
         SimpleKMeans KM = new SimpleKMeans();
         KM.setNumClusters(centerNum);
         KM.buildClusterer(instancesTrain);

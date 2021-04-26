@@ -25,7 +25,7 @@ public class EMClassification {
         String[] options = new String[]{"-R", "first-last"};
         Instances instancesTrain = FileLoader.loadInstancesFromCSV(trainFilePath,classIndex, includeHeader, options);
 
-        int centerNum = 47;
+        int centerNum = 123;
         EM em = new EM();
         em.setMaxIterations(100);
         em.setNumClusters(centerNum);

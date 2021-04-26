@@ -71,13 +71,13 @@ public class DensityPeakCluster {
 		DensityPeakCluster cluster = new DensityPeakCluster(reader.getSamples());
 		cluster.calPairDistance();
 //		double dc = cluster.findDC();//dc的确定采用了类似二分查找的方法，具有一定的随机性
-        double dc = 0.001;
+        double dc = 0.0008;
 		cluster.calRhoCK(dc);//截断距离
 		cluster.calDelta();
 		cluster.calGamma();
 
 		/*聚类并输出结果*/
-		int centerNum = 47;
+		int centerNum = 122;
 		cluster.clustering(centerNum);
 		String outputPath = desktopPath + "\\experiment5\\exp4\\FSFDP\\all_data_encode_14-6_result_dpc_dc-"+ dc+"_centerNum-"+ centerNum +".csv";
 		cluster.outputCluster(outputPath, cluster.clusterMap );

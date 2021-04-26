@@ -1,34 +1,37 @@
 pcap4j:
   extension:
     util:
-      tsharkPath: K:\Wireshark\tshark.exe
+      tsharkPath: E:\Program Files\Wireshark\tshark.exe
 
 honeyeye:
   system:
     inputingMode: 2 # 1:capture, 2:load
-    outputingMode: -1 # -1:plugin, 0:none, 1:transmission, 2:storage, 3:double
+    outputingMode: 0 # 0:plugin, 1:transmission, 2:storage, 3: transmission and storage
   inputer:
     capturer:
       count: -1
       readTimeout: 60
       snaplen: 65536
-      filter: tcp port 443 and (dst 192.168.31.137 or src 192.168.31.137)
+      filter: tcp port 80 and (dst 192.168.31.137 or src 192.168.31.137)
+      enableAutoFind: false
+      enableNifParameter: true # true:parameter, false:console
+      nifIndex: 3
       interval: 2
-      enableAutoFind: true
+      logMode: 1 # 0: all, 1: parsed, 2: none
     loader:
-      filePath: "C:\\Users\\18809\\Desktop\\experiment\\scanning tools\\modbus-discover.pcap"
+      filePath: E:\Desktop\run1_3rtu_2s.pcap
   listener:
-    transmittingGrain: 0 # 0:rawPacket, 1:packet, 2:flow, 3:session
-    transmittingTimeout: 1  # in [s]
-    outputtingGrain: 2 # 0:rawPacket, 1:packet, 2:flow, 3:session
-    outputtingTimeout: 1  # in [s]
-    pluginGrain: 2 # 0:rawPacket, 1:packet, 2:flow, 3:session
-    pluginTimeout: 10  # in [s]
-    meetingTimeout: 100000000000000000  # in [s]
+    meetingTimeout: 100  # in [s]
     segmentMax: 10000
+    pluginGrain: 3 # 0:rawPacket, 1:packet, 2:flow, 3:session
+    pluginTimeout: 100  # in [s]
+    outputtingGrain: 3 # 0:rawPacket, 1:packet, 2:flow, 3:session
+    outputtingTimeout: 0.2  # in [s]
+    transmittingGrain: 1 # 0:rawPacket, 1:packet, 2:flow, 3:session
+    transmittingTimeout: 1  # in [s]
     transmittingListener:
       port: 5150
-      netAddress:  183.198.217.144 #202.199.13.252 #192.168.31.137
+      netAddress:  192.168.0.3
   outputer:
-    filePath: "C:\\Users\\18809\\Desktop\\Honeyeye A Network Traffic Collection Framework for Distributed Honeynets of Industrial Control Systems\\experiment"
-    fileName: "testPcap"
+    filePath: E:\Desktop
+    fileName: hellotest2

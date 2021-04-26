@@ -18,6 +18,7 @@ import java.util.List;
 public class HCClassification {
 
     public static void  main(String[] args) throws Exception {
+        System.out.println("HCClassification");
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
         String trainFilePath = desktopPath + "\\experiment5\\exp4\\HC\\all_data_encode_14-6-label.csv";
         int classIndex = -1;
@@ -25,7 +26,7 @@ public class HCClassification {
         String[] options = new String[]{"-R", "first-last"};
         Instances instancesTrain = FileLoader.loadInstancesFromCSV(trainFilePath,classIndex, includeHeader, options);
 
-        int clusterNum = 53;
+        int clusterNum = 47;
         HierarchicalClusterer HC = new HierarchicalClusterer();
         HC.setNumClusters(clusterNum);
         HC.buildClusterer(instancesTrain);
@@ -43,7 +44,7 @@ public class HCClassification {
             output.add(new String[]{a+"", instancesLabel.get(a).classValue()+"", cnum[a]+""});
         }
         String outputPath = desktopPath + "\\experiment5\\exp4\\HC\\all_data_encode_14-6_result_HC_clusterNum-"+ clusterNum +".csv";
-        CSVUtil.write(outputPath, output);
+//        CSVUtil.write(outputPath, output);
 
 //        System.out.println("");
     }

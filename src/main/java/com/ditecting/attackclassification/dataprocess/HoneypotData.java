@@ -28,8 +28,8 @@ public class HoneypotData {
     public Map<String, List<String>> convertData (String inPath, String orgPath) throws InterruptedException {
         Map<String, String> orgs = extractOrgs(orgPath);
         Map<String, String> pots = new HashMap<>();
-        pots.put("192.168.0.11", "192.168.1.101");
-        pots.put("192.168.0.7", "192.168.1.101");
+        pots.put("192.168.0.11", "192.168.1.106");
+        pots.put("192.168.0.7", "192.168.1.106");
 
         loadHolder.load(inPath);
         List<String> stringFlowList = pluginCachePool.getAllString();

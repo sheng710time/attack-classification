@@ -25,8 +25,8 @@ public class DBSCANClassification {
         String[] options = new String[]{"-R", "first-last"};
         Instances instancesTrain = FileLoader.loadInstancesFromCSV(trainFilePath,classIndex, includeHeader, options);
 
-        double eps = 0.01;
-        int minps = 3;
+        double eps = 0.03;
+        int minps = 2;
         DBSCAN dbscan = new DBSCAN();
         dbscan.setEpsilon(eps);
         dbscan.setMinPoints(minps);

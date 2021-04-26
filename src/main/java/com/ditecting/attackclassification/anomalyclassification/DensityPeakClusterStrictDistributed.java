@@ -306,6 +306,7 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
         }
 
         if(distanceList.size() <= KNC){
+//            System.out.println(distanceList.size());
             return distanceList;
         }else{
             Collections.sort(distanceList, new Comparator<Pair<Integer, Double>>() {
@@ -381,9 +382,14 @@ public class DensityPeakClusterStrictDistributed implements Serializable{
             int centerId = nearestCenter.getKey();
             if(centerId != -1){
                 sample.setPredictLabel(clustersLabels.get(centerId)+"");
-                double wc = clusterToSampleMap.get(centerId).size()<Maximum ? clusterToSampleMap.get(centerId).size() : Maximum-1;
-                double du = dc / Maximum * wc;
-//                double du = 0;
+                double du;
+                if(Maximum < 1){
+                    du = Double.MAX_VALUE;
+                }else {
+                    double wc = clusterToSampleMap.get(centerId).size()<Maximum ? clusterToSampleMap.get(centerId).size() : Maximum;
+                    du = dc / Maximum * wc;
+                }
+
                 double centerDistance = twoSampleDistance(sample, clusterCenterMap.get(centerId));
                 if(centerDistance > du){// update dpcsd with a new sample
                     times_update++;

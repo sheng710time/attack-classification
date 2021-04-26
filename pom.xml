@@ -47,7 +47,7 @@
         <dependency>
             <groupId>com.ditecting</groupId>
             <artifactId>honeyeye</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.1.3.1-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -120,6 +120,7 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.2.6.RELEASE</version>
 			</plugin>
 		</plugins>
 	</build>
