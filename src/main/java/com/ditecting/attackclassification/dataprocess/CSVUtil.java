@@ -16,6 +16,33 @@ import java.util.List;
 public class CSVUtil {
 
     /**
+     * read CSV file
+     * @param filePath
+     * @return List<String>
+     */
+    public static List<String[]> read(String filePath, char delimiter, boolean includeHeader){
+
+        List<String[]> strList = new ArrayList<String[]>();
+        try {
+            CsvReader csvReader = new CsvReader(filePath, delimiter, Charset.forName("UTF-8"));
+            // read header
+            if(includeHeader){
+                csvReader.readHeaders();
+            }
+
+            while (csvReader.readRecord()){
+                strList.add(csvReader.getValues());
+            }
+
+            csvReader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally{
+            return strList;
+        }
+    }
+
+    /**
      * read csv file
      * @param filePath
      * @param includeHeader

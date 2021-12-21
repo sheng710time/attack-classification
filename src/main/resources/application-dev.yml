@@ -19,12 +19,12 @@ honeyeye:
       interval: 2
       logMode: 1 # 0: all, 1: parsed, 2: none
     loader:
-      filePath: E:\Desktop\run1_3rtu_2s.pcap
+      filePath: E:\Desktop\CnC_uploading_exe_modbus_6RTU_with_operate.pcap
   listener:
     meetingTimeout: 100  # in [s]
     segmentMax: 10000
     pluginGrain: 3 # 0:rawPacket, 1:packet, 2:flow, 3:session
-    pluginTimeout: 100  # in [s]
+    pluginTimeout: 4  # in [s]
     outputtingGrain: 3 # 0:rawPacket, 1:packet, 2:flow, 3:session
     outputtingTimeout: 0.2  # in [s]
     transmittingGrain: 1 # 0:rawPacket, 1:packet, 2:flow, 3:session

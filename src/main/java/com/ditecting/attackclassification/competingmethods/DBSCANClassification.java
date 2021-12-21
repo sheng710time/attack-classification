@@ -19,7 +19,7 @@ import java.util.List;
 public class DBSCANClassification {
     public static void main(String[] args) throws Exception {
         String desktopPath = FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
-        String trainFilePath = desktopPath + "\\experiment5\\exp4\\DBSCAN\\all_data_encode_14-6-label.csv";
+        String trainFilePath = desktopPath + "\\experiment5\\exp5\\DBSCAN\\1 org\\all_data_encode_14-6-label.csv";
         int classIndex = -1;
         boolean includeHeader = true;
         String[] options = new String[]{"-R", "first-last"};
@@ -37,14 +37,14 @@ public class DBSCANClassification {
         eval.evaluateClusterer(instancesTrain);
         double[] cnum = eval.getClusterAssignments();
 
-        String labelFilePath = desktopPath + "\\experiment5\\exp4\\DBSCAN\\all_data_encode_14-6.csv";
+        String labelFilePath = desktopPath + "\\experiment5\\exp5\\DBSCAN\\1 org\\all_data_encode_14-6.csv";
         Instances instancesLabel = FileLoader.loadInstancesFromCSV(labelFilePath,0, includeHeader, options);
         List<String[]> output = new ArrayList<String[]>();
         output.add(new String[]{"flowNo", "data_class", "predicted_class"});
         for(int a=0; a<cnum.length; a++){
             output.add(new String[]{a+"", instancesLabel.get(a).classValue()+"", cnum[a]+""});
         }
-        String outputPath = desktopPath + "\\experiment5\\exp4\\DBSCAN\\all_data_encode_14-6_result_DBSCAN_eps-"+ eps +"_minps-"+ minps +".csv";
+        String outputPath = desktopPath + "\\experiment5\\exp5\\DBSCAN\\1 org\\all_data_encode_14-6_result_DBSCAN_eps-"+ eps +"_minps-"+ minps +".csv";
         CSVUtil.write(outputPath, output);
 
         System.out.println("");

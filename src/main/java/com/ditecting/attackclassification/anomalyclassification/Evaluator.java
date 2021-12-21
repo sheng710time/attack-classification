@@ -93,7 +93,7 @@ public class Evaluator {
         System.out.println("classification_accuracy: " + classification_accuracy);
         System.out.println("number of new clusters: " + num_new_cluster);
         System.out.println("data_extension_rate: " + extension_rate);
-        System.out.println("attack_extension_rate: " + num_new_cluster/13);
+        System.out.println("attack_extension_rate: " + num_new_cluster/14);
     }
 
     /**

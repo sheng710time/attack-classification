@@ -38,16 +38,18 @@ public class ScanningToolData {
 
         loadHolder.load(inPath);
         List<String> stringList = pluginCachePool.getAllString();
-        List<String> modificationList = new ArrayList<>();
-        for(String str : stringList){
-            JsonObject jsonObject = JsonParser.parseString(str).getAsJsonObject();
-            String srcIp = jsonObject.get("srcIp").getAsString();
-            String dstIp = jsonObject.get("dstIp").getAsString();
-            if(srcIp.equals("202.199.13.224") || srcIp.equals("202.199.13.129")){//ignore unrelated data
-                String modification1 = str.replaceAll(dstIp, ipMap.get(dstIp));
-                modificationList.add(modification1);
-            }
-        }
-        return modificationList;
+        return stringList;
+
+//        List<String> modificationList = new ArrayList<>();
+//        for(String str : stringList){
+//            JsonObject jsonObject = JsonParser.parseString(str).getAsJsonObject();
+//            String srcIp = jsonObject.get("srcIp").getAsString();
+//            String dstIp = jsonObject.get("dstIp").getAsString();
+//            if(srcIp.equals("202.199.13.224") || srcIp.equals("202.199.13.129")){//ignore unrelated data
+//                String modification1 = str.replaceAll(dstIp, ipMap.get(dstIp));
+//                modificationList.add(modification1);
+//            }
+//        }
+//        return modificationList;
     }
 }
